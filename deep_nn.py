@@ -43,12 +43,14 @@ class DeepNN(LearningAlgorithm):
         for i, v in reversed(list(enumerate(self._layers))):
             self._backward_for_layer(i, v)
 
+    def _grad_layer(self, layer_num, layer):
+        if (layer_num > 0):
+            layer['W'] = layer['W'] - self.learning_rate * layer['dW']
+            layer['b'] = layer['b'] - self.learning_rate * layer['db']
+
     def _grads(self):
         for i, layer in enumerate(self._layers):
-            if (i == 0):
-                continue
-        layer['W'] = layer['W'] - self.learning_rate * layer['dW']
-        layer['b'] = layer['b'] - self.learning_rate * layer['db']
+            self._grad_layer(i, layer)
 
     def _init_layer(self, layer_num, layer):
         self._layers.insert(layer_num, layer)
@@ -63,7 +65,7 @@ class DeepNN(LearningAlgorithm):
                     "A": self.train_x_orig
                 })
             else:
-                rand_fac = 0.01  # np.sqrt(2. / _layers[i - 1])
+                rand_fac = np.sqrt(2. / _layers[i - 1])
                 self._init_layer(i, {
                     "n": _layers[i],
                     "W": np.random.randn(_layers[i], _layers[i - 1]) * rand_fac,

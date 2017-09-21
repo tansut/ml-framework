@@ -16,7 +16,7 @@ def process_input(data_list):
 
 
 data_orig = pd.read_csv("winequality.txt", sep=";")
-data_orig = pd.read_csv("ex2data1.txt", sep=",")
+#data_orig = pd.read_csv("ex2data1.txt", sep=",")
 
 df = data_orig.copy()
 
@@ -48,9 +48,9 @@ assert(validation_y.shape == (1, split_data[2].shape[0]))
 
 analyse_data_x, analyse_data_y = test_x, test_y
 
-iterations = [4000, 8000]
-learning_rates = [0.001, 0.005, 0.01, 0.05]
-hidden_layers = [[2]]
+iterations = [16000]
+learning_rates = [0.001]
+hidden_layers = [[12, 24], [12, 24, 96]]
 
 norm_train_x = train_x  # LearningAlgorithm.zscore(train_x.T).T
 
