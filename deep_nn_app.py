@@ -1,4 +1,5 @@
 from deep_nn import DeepNN
+from deep_nn_momentum import DeepNNMomentum
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ df = data_orig.copy()
 # df['total sulfur dioxide'] = np.power(df['total sulfur dioxide'], -0.5)
 # del df['alcohol']  # = np.power(df['alcohol'], -0.5)
 
-split_data = DeepNN.split(df.values, 0.8, 0.1, 0.1)
+split_data = LearningAlgorithm.split(df.values, 0.8, 0.1, 0.1)
 input_data, output_data = process_input(split_data)
 
 train_x, train_y = input_data[0], output_data[0]
@@ -47,17 +48,17 @@ assert(validation_y.shape == (1, split_data[2].shape[0]))
 
 analyse_data_x, analyse_data_y = test_x, test_y
 
-iterations = [15000]
-learning_rates = [0.005]
-hidden_layers = [[6]]
+iterations = [4000, 8000]
+learning_rates = [0.001, 0.005, 0.01, 0.05]
+hidden_layers = [[2]]
 
 norm_train_x = train_x  # LearningAlgorithm.zscore(train_x.T).T
 
 for it in iterations:
     for lr in learning_rates:
         for hl in hidden_layers:
-            nn = DeepNN(norm_train_x, train_y, hidden_layers=hl,
-                        learning_rate=lr, iteration_count=it)
+            nn = DeepNNMomentum(norm_train_x, train_y, hidden_layers=hl,
+                                learning_rate=lr, iteration_count=it)
             train_result = nn.train()
             prediction_result = nn.predict(analyse_data_x)
             success = np.sum(
