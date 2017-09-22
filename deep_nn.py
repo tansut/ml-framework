@@ -94,7 +94,7 @@ class DeepNN(LearningAlgorithm):
             hidden_layers != None) else [4]
         self._init()
 
-    def train(self):
+    def train(self, train_cb=None):
         _layers = np.concatenate(
             ([self.train_x_orig.shape[0]], self.hidden_layers, [len(self._yvalues_dict)]))
         self._generate_layers(_layers)
@@ -102,9 +102,10 @@ class DeepNN(LearningAlgorithm):
         for i, layer in enumerate(range(self.iteration_count)):
             self._forward(self._layers)
             cost = self._compute_cost()
+            train_cb(i, cost) if train_cb != None else None
             if (i % 1000 == 0):
                 pass
-                print("It: {0}, Cost: {1}".format(i, cost))
+                #print("It: {0}, Cost: {1}".format(i, cost))
             cost_history.append(cost)
             self._backward()
             self._grads()
@@ -112,6 +113,16 @@ class DeepNN(LearningAlgorithm):
         return {
             'costs': cost_history,
             'layers': self._layers
+        }
+
+    def predict_and_test(self, test_x, test_y):
+        prediction_result = self.predict(test_x)
+        successes = prediction_result['predictions'] == test_y
+        total_success = np.sum(successes)
+        return {
+            'result': successes,
+            'total_success': total_success,
+            'rate': (total_success / successes.shape[1]) * 100
         }
 
     def predict(self, X):
