@@ -10,7 +10,6 @@ class LogisticRegression(LearningAlgorithm):
         return LearningAlgorithm.sigmoid(w.T.dot(x) + b)
 
     def loss(a, y):
-        """ c x train_m matrix """
         return - y * np.log(a) - (1 - y) * np.log(1 - a)
 
     def cost(a, y):
@@ -30,7 +29,7 @@ class LogisticRegression(LearningAlgorithm):
         return res
 
     def test(self, w, b, x, y):
-        res = self.predict(w, b, x)  # c x m probabilities
+        res = self.predict(w, b, x)
         maxindexes = np.argmax(res[:, :], axis=0)
         predictedValues = np.array([self.yclasses[v]
                                     for v in maxindexes]).reshape((y.shape[0], 1))

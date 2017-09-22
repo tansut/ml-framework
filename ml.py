@@ -59,7 +59,6 @@ class LearningAlgorithm:
         plt.show() if show == True else None
 
     def split(arr, *ratios):
-        #ratios = filter(lambda x: x > 0., ratios)
         sizes = (np.array(ratios) * len(arr))
         sizes = np.round(sizes).astype(int)
         sizes[0] = sizes[0] + len(arr) - np.sum(sizes)

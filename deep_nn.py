@@ -5,7 +5,8 @@ import numpy as np
 class DeepNN(LearningAlgorithm):
 
     def _compute_cost(self):
-        A = self._last_layer['A']
+        """Computes Softmax cost"""
+        A = self._layers[-1]['A']
         Y = self._yvalues_binary
         m = self.m
         logprobs = np.multiply(np.log(A), Y)
@@ -24,22 +25,23 @@ class DeepNN(LearningAlgorithm):
     def _backward_for_layer(self, layer_num, layer):
         m = self.m
 
-        if layer_num == len(self._layers) - 1:
-            layer['dW'] = (1. / m) * \
-                layer['dZ'].dot(self._layers[layer_num - 1]['A'].T)
-            layer['db'] = (1. / m) * np.sum(layer['dZ'],
-                                            axis=1, keepdims=True)
-        elif (layer_num != 0):
-            layer['dZ'] = self._layers[layer_num +
-                                       1]['W'].T.dot(self._layers[layer_num + 1]['dZ']) * layer['G_d'](layer['A'])
-            layer['dW'] = (1. / m) * \
-                layer['dZ'].dot(self._layers[layer_num - 1]['A'].T)
+        # skip first (input) layer
+        if layer_num > 0:
+
+            # compute dZ if this is not output layer
+            if layer_num < len(self._layers) - 1:
+                next_layer = self._layers[layer_num + 1]
+                g_function_derivative = layer['G_d']
+                layer['dZ'] = next_layer['W'].T.dot(
+                    next_layer['dZ']) * g_function_derivative(layer['A'])
+
+            prev_layer = self._layers[layer_num - 1]
+            layer['dW'] = (1. / m) * layer['dZ'].dot(prev_layer['A'].T)
             layer['db'] = (1. / m) * np.sum(layer['dZ'],
                                             axis=1, keepdims=True)
 
     def _backward(self):
-        m = self.m
-        self._last_layer['dZ'] = self._last_layer['A'] - self._yvalues_binary
+        self._layers[-1]['dZ'] = self._layers[-1]['A'] - self._yvalues_binary
         for i, v in reversed(list(enumerate(self._layers))):
             self._backward_for_layer(i, v)
 
@@ -73,8 +75,6 @@ class DeepNN(LearningAlgorithm):
                     "G": LearningAlgorithm.relu if i < len(_layers) - 1 else LearningAlgorithm.softmax,
                     "G_d": LearningAlgorithm.relu_d if i < len(_layers) - 1 else LearningAlgorithm.softmax_d
                 })
-        self._first_layer = self._layers[0]
-        self._last_layer = self._layers[-1]
 
     def _init(self):
         unique_y = np.unique(self.train_y_orig)
