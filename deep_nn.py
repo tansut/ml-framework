@@ -12,7 +12,15 @@ class DeepNN(LearningAlgorithm):
         logprobs = np.multiply(np.log(A), Y)
         losses = -np.sum(logprobs, axis=0)
         cost = (1. / m) * np.sum(losses)
-        return cost
+        L2_regularization_cost = 0.0
+        for i, v in enumerate(self._layers):
+            if (i == 0):
+                continue
+            ws = np.sum(np.square(v['W']))
+            L2_regularization_cost += ws
+        L2_regularization_cost = (
+            1. / m) * (self.lambd / 2.) * L2_regularization_cost
+        return cost + L2_regularization_cost
 
     def _forward(self, _layers):
         for i, layer in enumerate(_layers):
@@ -37,6 +45,10 @@ class DeepNN(LearningAlgorithm):
 
             prev_layer = self._layers[layer_num - 1]
             layer['dW'] = (1. / m) * layer['dZ'].dot(prev_layer['A'].T)
+
+            # regularization
+            layer['dW'] += (self.lambd / m) * layer['W']
+
             layer['db'] = (1. / m) * np.sum(layer['dZ'],
                                             axis=1, keepdims=True)
 
@@ -85,13 +97,14 @@ class DeepNN(LearningAlgorithm):
         self._yvalues_binary = np.array([_yvalues[self._yvalues_dict[v]]
                                          for v in self.train_y_orig[0, :]]).T
 
-    def __init__(self, train_x, train_y, hidden_layers=None, learning_rate=0.01, iteration_count=1000):
+    def __init__(self, train_x, train_y, hidden_layers=None, learning_rate=0.01, iteration_count=1000, lambd=0.1):
         self.train_x_orig = train_x
         self.train_y_orig = train_y
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
         self.hidden_layers = hidden_layers[:] if (
             hidden_layers != None) else [4]
+        self.lambd = lambd
         self._init()
 
     def train(self, train_cb=None):
