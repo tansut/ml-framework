@@ -14,8 +14,10 @@ val_x, val_y = valid_set[:, 0:-1].T, valid_set[:, -1:].T
 
 nn = NeuralNet(train_x, train_y,
                hidden_layers=[6],
-               iteration_count=10000,
-               learning_rate=0.08)
+               iteration_count=30000,
+               learning_rate=0.02,
+               minibatch_size=100,
+               epochs=3)
 
 nn.train(lambda i, cost: print(
     "{0:<6} {1:8.4f}".format(i, cost)) if (i % 100 == 0) else None)
