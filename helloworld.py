@@ -1,5 +1,4 @@
 import numpy as np
-import numpy as np
 import pandas as pd
 
 from aibrite.ml.neuralnet import NeuralNet
@@ -23,4 +22,4 @@ nn.train(lambda i, cost: print(
 
 predict = nn.predict_and_test(test_x, test_y)
 
-print("succ: {0}".format(predict['rate']))
+print("succ%: {0:.2f}".format(predict['rate']))
