@@ -9,8 +9,10 @@ from nn_test_thread import NNTestThread
 import concurrent.futures
 import time
 
+from nntest import NNTester
 
-df = pd.read_csv("winequality.txt", sep=";")
+
+df = pd.read_csv("./data/winequality-red.csv", sep=";")
 # df = pd.read_csv("ex2data1.txt", sep=",")
 
 # split as train, test, validation (%80, %10, %10)
@@ -25,42 +27,31 @@ learning_rates = [0.04, 0.05, 0.06]
 hidden_layers = [[6], [12]]
 
 
-def test_it(nn_class, train_x, train_y, test_x, test_y, **kvargs):
-    nn = nn_class(train_x, train_y, **kvargs)
-    train_result = nn.train()
-    pred_result = nn.predict_and_test(test_x, test_y)
-    return {
-        'pred_result': pred_result,
-        'train_result': train_result,
-        'nn': nn
-    }
-
-
-thread_list = []
 result_list = []
 start_time = time.time()
 
-with concurrent.futures.ThreadPoolExecutor() as executor:
+tester = NNTester()
+
+with tester.getExecutor() as executor:
     for it in iterations:
         for lr in learning_rates:
             for hl in hidden_layers:
-                e = executor.submit(test_it, DeepNNMomentum, train_x, train_y, test_x, test_y,
-                                    hidden_layers=hl,
-                                    learning_rate=lr,
-                                    iteration_count=it
-                                    )
-                thread_list.append(e)
-    for future in concurrent.futures.as_completed(thread_list):
+                tester.submit("it:{}, lr:{}, hl:{}".format(it, lr, hl), DeepNNMomentum, train_x, train_y, test_x, test_y,
+                              hidden_layers=hl,
+                              learning_rate=lr,
+                              iteration_count=it
+                              )
+    for test in tester.as_completed():
         try:
-            data = future.result()
+            data = test.result()
         except Exception as exc:
             print(exc)
         else:
             result_list.append(data)
             pred_result = data['pred_result']
             nn = data['nn']
-            print ("it:{}, lr:{}, nn:{} success: {:.2f}".format(
-                nn.iteration_count, nn.learning_rate, nn.hidden_layers, pred_result['rate']))
+            print("id:{} success: {:.2f}".format(
+                data['id'], pred_result['rate']))
 
 
 print("%f seconds" % (time.time() - start_time))
