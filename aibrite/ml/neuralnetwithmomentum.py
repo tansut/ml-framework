@@ -1,10 +1,8 @@
-from ml import LearningAlgorithm
-from deep_nn import DeepNN
+from aibrite.ml.neuralnet import NeuralNet
 import numpy as np
 
 
-class DeepNNMomentum(DeepNN):
-
+class NeuralNetWithMomentum(NeuralNet):
     def _init_layer(self, layer_num, layer):
         if (layer_num > 0):
             layer['VdW'] = np.zeros(layer['W'].shape)

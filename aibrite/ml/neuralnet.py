@@ -1,8 +1,8 @@
-from ml import LearningAlgorithm
+from aibrite.ml.core import MlBase
 import numpy as np
 
 
-class DeepNN(LearningAlgorithm):
+class NeuralNet(MlBase):
 
     def _compute_cost(self):
         """Computes Softmax cost"""
@@ -12,6 +12,8 @@ class DeepNN(LearningAlgorithm):
         logprobs = np.multiply(np.log(A), Y)
         losses = -np.sum(logprobs, axis=0)
         cost = (1. / m) * np.sum(losses)
+
+        # regularization
         L2_regularization_cost = 0.0
         for i, v in enumerate(self._layers):
             if (i == 0):
@@ -84,8 +86,8 @@ class DeepNN(LearningAlgorithm):
                     "n": _layers[i],
                     "W": np.random.randn(_layers[i], _layers[i - 1]) * rand_fac,
                     "b": np.zeros((_layers[i], 1)),
-                    "G": LearningAlgorithm.relu if i < len(_layers) - 1 else LearningAlgorithm.softmax,
-                    "G_d": LearningAlgorithm.relu_d if i < len(_layers) - 1 else LearningAlgorithm.softmax_d
+                    "G": MlBase.relu if i < len(_layers) - 1 else MlBase.softmax,
+                    "G_d": MlBase.relu_d if i < len(_layers) - 1 else None
                 })
 
     def _init(self):

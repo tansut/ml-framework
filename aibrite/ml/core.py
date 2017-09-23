@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class LearningAlgorithm:
+class MlBase:
 
     def zscore(np_arr):
         avgs = np.sum(np_arr, axis=0, keepdims=True) / np_arr.shape[0]
@@ -31,31 +31,6 @@ class LearningAlgorithm:
     def softmax(x):
         """Compute softmax values for each sets of scores in x."""
         return np.exp(x) / np.sum(np.exp(x), axis=0)
-
-    def softmax_d(z):
-        return a * (1. - a)
-
-    def plotCost(costs, figNum=None, title='', show=True):
-        plt.figure(figNum)
-        plt.title(title)
-        plt.plot(costs)
-        plt.xlabel("iteration")
-        plt.show() if show == True else None
-
-    def plotCosts(costs, figNum=None, title='', show=True):
-        plt.figure(figNum)
-        plt.title(title)
-        plotCount = costs[0].shape[0]
-        plotRow = np.ceil(plotCount / 2.0).astype(int)
-        plotCol = np.floor(plotCount / 2.0).astype(int)
-
-        for i in range(plotCount):
-            cost = [x[i][0] for x in costs]
-            plt.subplot(plotRow, plotCol, i + 1)
-            plt.plot(cost)
-            plt.xlabel("iteration")
-            plt.ylabel("C{0}".format(i))
-        plt.show() if show == True else None
 
     def split(arr, *ratios):
         sizes = (np.array(ratios) * len(arr))

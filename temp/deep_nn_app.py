@@ -52,7 +52,7 @@ with tester.getExecutor() as executor:
             result_list.append(data)
             pred_result = data['pred_result']
             nn = data['nn']
-            print("id:{} success: {:.2f}".format(
+            print("{}: success: {:.2f}".format(
                 data['id'], pred_result['rate']))
 
 

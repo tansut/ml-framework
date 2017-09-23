@@ -28,20 +28,26 @@ def load_data(dataset):
     return train_set, valid_set, test_set
 
 
-train_set, valid_set, test_set = load_data('./data/mnist.pkl.gz')
+def get_datasets():
+    train_set, valid_set, test_set = load_data('./data/mnist.pkl.gz')
 
-train_x = np.array(train_set[0]).T
-train_y = np.array(train_set[1]).reshape(len(train_set[1]), 1).T
+    train_x = np.array(train_set[0]).T
+    train_y = np.array(train_set[1]).reshape(len(train_set[1]), 1).T
 
-test_x = np.array(test_set[0]).T
-test_y = np.array(test_set[1]).reshape(len(test_set[1]), 1).T
+    test_x = np.array(test_set[0]).T
+    test_y = np.array(test_set[1]).reshape(len(test_set[1]), 1).T
 
-nn = DeepNNMomentum(train_x, train_y, iteration_count=1000)
+    valid_x = np.array(valid_set[0]).T
+    valid_y = np.array(valid_set[1]).reshape(len(valid_set[1]), 1).T
 
-nn.train(lambda i, cost: print(i, cost) if i % 1000 else None)
+    return (train_x, train_y), (test_x, test_y), (valid_x, valid_y)
 
-res = nn.predict_and_test(test_x, test_y)
+# nn = DeepNNMomentum(train_x, train_y, iteration_count=1000, learning_rate=0.02)
 
-print("succ: {}", res["rate"])
+# nn.train(lambda i, cost: print(i, cost) if i % 1000 else None)
 
-print(train_x.shape, train_y.shape)
+# res = nn.predict_and_test(test_x, test_y)
+
+# print("succ: {}", res["rate"])
+
+# print(train_x.shape, train_y.shape)

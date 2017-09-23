@@ -1,5 +1,3 @@
 __pycache__
-*.txt
-*.csv
 .ropeproject
-*/data/*
+.vscode

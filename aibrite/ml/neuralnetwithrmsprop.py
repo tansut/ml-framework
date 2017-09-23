@@ -1,9 +1,8 @@
-from ml import LearningAlgorithm
-from deep_nn import DeepNN
+from aibrite.ml.neuralnet import NeuralNet
 import numpy as np
 
 
-class DeepNNRMSprop(DeepNN):
+class NeuralNetWithRMSprop(NeuralNet):
 
     def _init_layer(self, layer_num, layer):
         if (layer_num > 0):
