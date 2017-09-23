@@ -18,9 +18,9 @@ val_x, val_y = valid_set[:, 0:-1].T, valid_set[:, -1:].T
 nn = NeuralNetWithAdam(train_x, train_y,
                        hidden_layers=[6],
                        iteration_count=1000,
-                       learning_rate=0.02,
-                       minibatch_size=500,
-                       epochs=20,
+                       learning_rate=0.01,
+                       minibatch_size=64,
+                       epochs=3,
                        shuffle=True)
 
 nn.train(lambda i, cost: print(

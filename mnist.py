@@ -2,8 +2,8 @@ import six.moves.cPickle as pickle
 import gzip
 import os
 import numpy as np
-from deep_nn import DeepNN
-from deep_nn_momentum import DeepNNMomentum
+
+from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
 
 
 def load_data(dataset):
@@ -42,12 +42,17 @@ def get_datasets():
 
     return (train_x, train_y), (test_x, test_y), (valid_x, valid_y)
 
-# nn = DeepNNMomentum(train_x, train_y, iteration_count=1000, learning_rate=0.02)
 
-# nn.train(lambda i, cost: print(i, cost) if i % 1000 else None)
+(train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
 
-# res = nn.predict_and_test(test_x, test_y)
 
-# print("succ: {}", res["rate"])
+nn = NeuralNetWithAdam(
+    train_x, train_y, iteration_count=250, learning_rate=0.02)
 
-# print(train_x.shape, train_y.shape)
+nn.train(lambda i, cost: print(i, cost) if i % 1000 else None)
+
+res = nn.predict_and_test(test_x, test_y)
+
+print("succ: {}", res["rate"])
+
+print(train_x.shape, train_y.shape)

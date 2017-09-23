@@ -188,7 +188,7 @@ class NeuralNet(MlBase):
     def train(self, train_cb=None):
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
-            minibatch_size = self.train_x_orig[1]
+            minibatch_size = self.train_x_orig.shape[1]
         total_batch_iteration = 0
         for epoch in range(self.epochs):
             current_batch_iteration = 0
