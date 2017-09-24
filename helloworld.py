@@ -9,20 +9,26 @@ from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
 from multiprocessing import Process
 from matplotlib.pyplot import plot, show
 
+from mnist import get_datasets
+
+
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
-train_set, test_set, valid_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
+train_set, dev_set, test_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
 
-train_x, train_y = train_set[:, 0:-1].T, train_set[:, -1:].T
-test_x, test_y = test_set[:, 0:-1].T, test_set[:, -1:].T
-val_x, val_y = valid_set[:, 0:-1].T, valid_set[:, -1:].T
+# train_x, train_y = train_set[:, 0:-1].T, train_set[:, -1:].T
+# dev_x, dev_y = dev_set[:, 0:-1].T, dev_set[:, -1:].T
+# test_x, test_y = test_set[:, 0:-1].T, test_set[:, -1:].T
+
+
+(train_x, train_y), (test_x, test_y), (dev_x, dev_y) = get_datasets()
 
 
 costs = {}
 
 
 def train_cb(cost, epoch, current_batch_index, total_batch_index, iteration):
-    if (iteration % 1 == 0):
+    if (iteration % 10 == 0):
         # print("{epoch:<4} {current_batch:<6} {iteration:<6} {cost:8.4f}".format(
         #     epoch=epoch,
         #     current_batch=current_batch_index,
@@ -50,13 +56,14 @@ def display_costs(costs, predict):
 
 
 nn = NeuralNetWithAdam(train_x, train_y,
-                       hidden_layers=[12],
-                       iteration_count=1000,
-                       learning_rate=0.0005,
-                       minibatch_size=128,
-                       epochs=5,
+                       hidden_layers=[18],
+                       iteration_count=300,
+                       learning_rate=0.001,
+                       minibatch_size=25000,
+                       epochs=1,
+                       learning_rate_decay=0.2,
                        # beta1=0.8,
-                       shuffle=False)
+                       shuffle=True)
 
 nn.train(train_cb)
 

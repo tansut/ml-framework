@@ -18,9 +18,11 @@ class NeuralNetWithMomentum(NeuralNet):
         layer.Vdb = self.beta * layer.Vdb + \
             (1.0 - self.beta) * layer.db
 
-    def _grad_layer(self, layer, Y):
-        layer.W = layer.W - self.learning_rate * layer.VdW
-        layer.b = layer.b - self.learning_rate * layer.Vdb
+    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
+        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+
+        layer.W = layer.W - lr * layer.VdW
+        layer.b = layer.b - lr * layer.Vdb
 
     def __init__(self, train_x, train_y, beta=0.9, *args, **kwargs):
         super().__init__(train_x, train_y, *args, **kwargs)

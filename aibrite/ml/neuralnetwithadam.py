@@ -31,12 +31,13 @@ class NeuralNetWithAdam(NeuralNet):
         layer.SdWCorrected = layer.SdW / (1 - self.beta2)**t
         layer.SdbCorrected = layer.Sdb / (1 - self.beta2)**t
 
-    def _grad_layer(self, layer, Y):
-        layer.W = layer.W - self.learning_rate * \
+    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
+        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+        layer.W = layer.W - lr * \
             (layer.VdWCorrected /
              (np.sqrt(layer.SdWCorrected) + self.epsilon))
 
-        layer.b = layer.b - self.learning_rate * \
+        layer.b = layer.b - lr * \
             (layer.VdbCorrected /
              (np.sqrt(layer.SdbCorrected) + self.epsilon))
 

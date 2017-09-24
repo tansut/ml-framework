@@ -43,16 +43,17 @@ def get_datasets():
     return (train_x, train_y), (test_x, test_y), (valid_x, valid_y)
 
 
-(train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
+# (train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
 
 
-nn = NeuralNetWithAdam(
-    train_x, train_y, iteration_count=500, learning_rate=0.01, epochs=2, minibatch_size=25000, shuffle=True)
+# nn = NeuralNetWithAdam(
+# train_x, train_y, iteration_count=500, learning_rate=0.01, epochs=2,
+# minibatch_size=25000, shuffle=True)
 
-nn.train()
+# nn.train()
 
-res = nn.predict_and_test(test_x, test_y)
+# res = nn.predict_and_test(test_x, test_y)
 
-print("succ: {}", res["rate"])
+# print("succ: {}", res["rate"])
 
-print(train_x.shape, train_y.shape)
+# print(train_x.shape, train_y.shape)

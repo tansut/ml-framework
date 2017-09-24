@@ -18,10 +18,12 @@ class NeuralNetWithRMSprop(NeuralNet):
         layer.Sdb = self.beta * layer.Sdb + \
             (1.0 - self.beta) * np.square(layer.db)
 
-    def _grad_layer(self, layer, Y):
-        layer.W = layer.W - self.learning_rate * \
+    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
+        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+
+        layer.W = layer.W - lr * \
             (layer.dW / (np.sqrt(layer.SdW) + self.epsilon))
-        layer.b = layer.b - self.learning_rate * \
+        layer.b = layer.b - lr * \
             (layer.db / (np.sqrt(layer.Sdb) + self.epsilon))
 
     def __init__(self, train_x, train_y, beta=0.9, epsilon=0.00000001, *args, **kwargs):

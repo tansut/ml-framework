@@ -84,13 +84,16 @@ class NeuralNet(MlBase):
             self._backward_for_layer(
                 v, Y, epoch, current_batch_index, total_batch_index)
 
-    def _grad_layer(self, layer, Y):
-        layer.W = layer.W - self.learning_rate * layer.dW
-        layer.b = layer.b - self.learning_rate * layer.db
+    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
+        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
 
-    def _grads(self, Y):
+        layer.W = layer.W - lr * layer.dW
+        layer.b = layer.b - lr * layer.db
+
+    def _grads(self, Y, epoch, current_batch_index, total_batch_index):
         for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
-            self._grad_layer(layer, Y)
+            self._grad_layer(
+                layer, Y, epoch, current_batch_index, total_batch_index)
 
     def initialize_layers(self, hiddens):
         self.layers = []
@@ -155,6 +158,7 @@ class NeuralNet(MlBase):
     def __init__(self, train_x, train_y,
                  hidden_layers=None,
                  learning_rate=0.01,
+                 learning_rate_decay=0,
                  iteration_count=1000,
                  lambd=0.1,
                  minibatch_size=0,
@@ -170,6 +174,7 @@ class NeuralNet(MlBase):
         self.minibatch_size = minibatch_size
         self.epochs = epochs
         self.shuffle = shuffle
+        self.learning_rate_decay = learning_rate_decay
         self.prepare_data(train_x, train_y, labels)
         self.initialize_layers(hiddens)
 
@@ -204,7 +209,8 @@ class NeuralNet(MlBase):
                        total_batch_index, i) if cb != None else None
                     self._backward(y_values_binary, epoch,
                                    current_batch_index, total_batch_index)
-                    self._grads(y_values_binary)
+                    self._grads(y_values_binary, epoch,
+                                current_batch_index, total_batch_index)
                 current_batch_index += 1
                 total_batch_index += 1
 
