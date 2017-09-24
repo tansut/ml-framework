@@ -10,9 +10,9 @@ class NeuralNetWithMomentum(NeuralNet):
             layer.VdW = np.zeros(layer.W.shape)
             layer.Vdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_iteration, total_batch_iteration):
+    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
         super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_iteration, total_batch_iteration)
+                                    current_batch_index, total_batch_index)
         layer.VdW = self.beta * layer.VdW + \
             (1.0 - self.beta) * layer.dW
         layer.Vdb = self.beta * layer.Vdb + \

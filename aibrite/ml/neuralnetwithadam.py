@@ -12,9 +12,9 @@ class NeuralNetWithAdam(NeuralNet):
             layer.SdW = np.zeros(layer.W.shape)
             layer.Sdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_iteration, total_batch_iteration):
+    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
         super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_iteration, total_batch_iteration)
+                                    current_batch_index, total_batch_index)
         layer.VdW = self.beta1 * layer.VdW + \
             (1.0 - self.beta1) * layer.dW
         layer.Vdb = self.beta1 * layer.Vdb + \
@@ -24,7 +24,7 @@ class NeuralNetWithAdam(NeuralNet):
         layer.Sdb = self.beta2 * layer.Sdb + \
             (1.0 - self.beta2) * np.square(layer.db)
 
-        t = total_batch_iteration
+        t = total_batch_index
         layer.VdWCorrected = layer.VdW / (1 - self.beta1)**t
         layer.VdbCorrected = layer.Vdb / (1 - self.beta1)**t
 

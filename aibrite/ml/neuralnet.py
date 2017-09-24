@@ -62,7 +62,7 @@ class NeuralNet(MlBase):
             layer.Z = layer.W.dot(layer.prev_layer.A) + layer.b
             layer.A = layer.activation_fn(layer.Z)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_iteration, total_batch_iteration):
+    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
         m = Y.shape[1]
 
         # compute dZ if this is not output layer
@@ -78,11 +78,11 @@ class NeuralNet(MlBase):
         layer.db = (1. / m) * np.sum(layer.dZ,
                                      axis=1, keepdims=True)
 
-    def _backward(self, Y, epoch, current_batch_iteration, total_batch_iteration):
+    def _backward(self, Y, epoch, current_batch_index, total_batch_index):
         self.output_layer.dZ = self.output_layer.A - Y
         for i, v in reversed(list(enumerate(self.hidden_layers + [self.output_layer]))):
             self._backward_for_layer(
-                v, Y, epoch, current_batch_iteration, total_batch_iteration)
+                v, Y, epoch, current_batch_index, total_batch_index)
 
     def _grad_layer(self, layer, Y):
         layer.W = layer.W - self.learning_rate * layer.dW
@@ -185,13 +185,13 @@ class NeuralNet(MlBase):
                 excerpt = slice(start_idx, start_idx + batchsize)
             yield inputs[:, excerpt], targets[:, excerpt]
 
-    def train(self, train_cb=None):
+    def train(self, cb=None):
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
             minibatch_size = self.train_x_orig.shape[1]
-        total_batch_iteration = 0
+        total_batch_index = 0
         for epoch in range(self.epochs):
-            current_batch_iteration = 0
+            current_batch_index = 0
 
             for batch in self.iterate_minibatches(self.train_x_orig, self.train_y_orig, minibatch_size, shuffle=self.shuffle):
                 x_batch, y_batch = batch
@@ -200,12 +200,13 @@ class NeuralNet(MlBase):
                 for i, v in enumerate(range(self.iteration_count)):
                     self._forward(self.layers)
                     cost = self.compute_cost(y_values_binary)
-                    train_cb(i, cost) if train_cb != None else None
+                    cb(cost, epoch, current_batch_index,
+                       total_batch_index, i) if cb != None else None
                     self._backward(y_values_binary, epoch,
-                                   current_batch_iteration, total_batch_iteration)
+                                   current_batch_index, total_batch_index)
                     self._grads(y_values_binary)
-                current_batch_iteration += 1
-                total_batch_iteration += 1
+                current_batch_index += 1
+                total_batch_index += 1
 
     def predict_and_test(self, test_x, test_y):
         prediction_result = self.predict(test_x)

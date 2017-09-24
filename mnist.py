@@ -47,9 +47,9 @@ def get_datasets():
 
 
 nn = NeuralNetWithAdam(
-    train_x, train_y, iteration_count=250, learning_rate=0.02)
+    train_x, train_y, iteration_count=500, learning_rate=0.01, epochs=2, minibatch_size=25000, shuffle=True)
 
-nn.train(lambda i, cost: print(i, cost) if i % 1000 else None)
+nn.train()
 
 res = nn.predict_and_test(test_x, test_y)
 

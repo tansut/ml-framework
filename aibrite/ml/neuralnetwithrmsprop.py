@@ -10,9 +10,9 @@ class NeuralNetWithRMSprop(NeuralNet):
             layer.SdW = np.zeros(layer.W.shape)
             layer.Sdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_iteration, total_batch_iteration):
+    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
         super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_iteration, total_batch_iteration)
+                                    current_batch_index, total_batch_index)
         layer.SdW = self.beta * layer.SdW + \
             (1.0 - self.beta) * np.square(layer.dW)
         layer.Sdb = self.beta * layer.Sdb + \
