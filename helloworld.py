@@ -16,11 +16,11 @@ from sklearn.neural_network import MLPClassifier
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
-# train_set, dev_set, test_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
+train_set, dev_set, test_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
 
-# train_x, train_y = train_set[:, 0:-1].T, train_set[:, -1:].T
-# dev_x, dev_y = dev_set[:, 0:-1].T, dev_set[:, -1:].T
-# test_x, test_y = test_set[:, 0:-1].T, test_set[:, -1:].T
+train_x, train_y = train_set[:, 0:-1].T, train_set[:, -1:].T
+dev_x, dev_y = dev_set[:, 0:-1].T, dev_set[:, -1:].T
+test_x, test_y = test_set[:, 0:-1].T, test_set[:, -1:].T
 
 
 def confusion_matrix(expect, pred, labels=None):
@@ -28,8 +28,8 @@ def confusion_matrix(expect, pred, labels=None):
         labels = np.union1d(expect, pred)
     m = [[0] * len(labels) for l in labels]
     index = {v: i for i, v in enumerate(labels)}
-    for p, t in zip(expect, pred):
-        m[index[p]][index[t]] += 1
+    for e, p in zip(expect, pred):
+        m[index[e]][index[p]] += 1
 
     return m
 
@@ -55,7 +55,7 @@ def calc_precision(cm):
 def calc_f1(cm):
     p = np.asarray(calc_precision(cm))
     r = np.asarray(calc_recall(cm))
-    return np.nan_to_num(2 * (r * p) / (r + p), )
+    return np.nan_to_num(2 * (r * p) / (r + p))
 
 
 def support(cm):
@@ -63,17 +63,17 @@ def support(cm):
     return c
 
 
-(train_x, train_y), (test_x, test_y), (dev_x, dev_y) = get_datasets()
+# (train_x, train_y), (test_x, test_y), (dev_x, dev_y) = get_datasets()
 
 
-def analyse(classifier, expected, predicted):
+def analyse(classifier, expected, predicted, labels=None):
     print("Classification report for classifier %s:\n%s\n"
-          % (classifier, metrics.classification_report(expected, predicted)))
+          % (classifier, metrics.classification_report(expected, predicted, labels=labels)))
     print("Confusion matrix:\n%s" %
-          metrics.confusion_matrix(expected, predicted))
+          metrics.confusion_matrix(expected, predicted, labels=labels))
     print("Accuracy: {0}".format(accuracy_score(expected, predicted)))
     print("------------------")
-    mat = confusion_matrix(expected, predicted)
+    mat = confusion_matrix(expected, predicted, labels=labels)
     print(mat)
     print(calc_accuracy(mat))
     print(calc_precision(mat))
@@ -114,10 +114,10 @@ def display_costs(costs, predict):
 
 
 classifier = NeuralNetWithAdam(train_x, train_y,
-                               hidden_layers=[9],
-                               iteration_count=30,
+                               hidden_layers=[6],
+                               iteration_count=1500,
                                learning_rate=0.001,
-                               minibatch_size=25000,
+                               minibatch_size=100,
                                epochs=1,
                                learning_rate_decay=0.2,
                                # beta1=0.8,
@@ -130,7 +130,7 @@ predict = classifier.predict_and_test(test_x, test_y)
 expected = np.squeeze(test_y.T)
 predicted = np.squeeze(predict["pred"].T)
 
-analyse(classifier, expected, predicted)
+analyse(classifier, expected, predicted, labels=[3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
 
 # classifier = svm.SVC(gamma=0.001)
 
