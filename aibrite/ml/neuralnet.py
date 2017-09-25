@@ -160,7 +160,7 @@ class NeuralNet(MlBase):
                  learning_rate=0.01,
                  learning_rate_decay=0,
                  iteration_count=1000,
-                 lambd=0.1,
+                 lambd=0.0001,
                  minibatch_size=0,
                  epochs=1,
                  labels=None,
@@ -219,6 +219,7 @@ class NeuralNet(MlBase):
         successes = prediction_result['predictions'] == test_y
         total_success = np.sum(successes)
         return {
+            "pred": prediction_result['predictions'],
             'result': successes,
             'total_success': total_success,
             'rate': (total_success / successes.shape[1]) * 100
