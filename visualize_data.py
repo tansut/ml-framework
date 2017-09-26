@@ -19,9 +19,9 @@ def zscore(np_arr):
     return (np_arr - avgs) / np.std(np_arr, axis=0, keepdims=True)
 
 
-data_frame = pd.read_csv('winequality.txt', sep=';')
+data_frame = pd.read_csv('./data/winequality-red.csv', sep=';')
 # data_frame.drop('density', axis=1, inplace=True)
-del data_frame['density']
+#del data_frame['density']
 
 
 data = data_frame.values
@@ -33,6 +33,7 @@ ox = data[:, 0:n]
 y = data[:, n]
 
 x = zscore(ox)
+x = ox
 # x = var_norm(x)
 
 

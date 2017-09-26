@@ -10,8 +10,14 @@ ScoreReport = namedtuple("ScoreReport", ["labels",
 
 class MlBase:
 
+    def shuffle(data):
+        data = np.asarray(data)
+        indices = np.arange(data.shape[0])
+        np.random.shuffle(indices)
+        return data[indices]
+
     def zscore(np_arr):
-        avgs = np.sum(np_arr, axis=0, keepdims=True) / np_arr.shape[0]
+        avgs = np.mean(np_arr, axis=0, keepdims=True)
         return (np_arr - avgs) / np.std(np_arr, axis=0, keepdims=True)
 
     def hyperbolic_tangent(z):

@@ -2,6 +2,7 @@ import concurrent.futures
 import time
 
 import pandas as pd
+import numpy as np
 
 from aibrite.ml.neuralnet import NeuralNet
 from aibrite.ml.neuralnetwithmomentum import NeuralNetWithMomentum
@@ -15,19 +16,27 @@ df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
 # print(df.values.shape)
 
-train_set, dev_set, test_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
+# np.random.seed(1)
+
+data = df.values
+# data = NeuralNet.shuffle(data)
+
+train_set, dev_set, test_set = NeuralNet.split(data, 0.6, 0.2, 0.2)
 
 train_x, train_y = train_set[:, 0:-1], train_set[:, -1]
-dev_x, dev_y = dev_set[:, 0:-1], dev_set[:, -1]
-test_x, test_y = test_set[:, 0:-1], test_set[:, -1]
+train_x, train_y = NeuralNet.zscore(train_set[:, 0:-1]), train_set[:, -1]
+dev_x, dev_y = NeuralNet.zscore(dev_set[:, 0:-1]), dev_set[:, -1]
+test_x, test_y = NeuralNet.zscore(test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [5000]
-learning_rates = [0.01]
+iterations = [1000]
+learning_rates = [0.008]
 hidden_layers = [(24, 36, 24, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y), 'test': (
     test_x, test_y), 'train': (train_x, train_y)}
+
+# test_sets = {'train': (train_x, train_y)}
 
 future_list = []
 start_time = time.time()
@@ -41,7 +50,7 @@ def predict_it(train_result, test_id, test_set):
     prediction_result = nn.predict(test_set[0])
     pred_time = time.time() - predict_start
 
-    report = NeuralNet.score_report(test_y, prediction_result.predicted)
+    report = NeuralNet.score_report(test_set[1], prediction_result.predicted)
     print("[{id}][{train_time:3.1f}/{pred_time:3.1f}]:{nn}:\n{report}\n".format(id=test_id,
                                                                                 train_time=train_time,
                                                                                 pred_time=pred_time,
@@ -71,10 +80,10 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
                                     hidden_layers=hl,
                                     learning_rate=lr,
                                     iteration_count=it,
-                                    lambd=0,
+                                    lambd=0.001,
                                     epochs=3,
                                     shuffle=True,
-                                    minibatch_size=128
+                                    minibatch_size=64
                                     # labels=labels
                                     )
                 future_list.append(e)

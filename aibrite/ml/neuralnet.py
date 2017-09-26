@@ -26,7 +26,7 @@ class HiddenLayer(NeuralNetLayer):
         self.next_layer = next_layer
 
     def init_weight_bias(self):
-        rand_fac = 0.1  # np.sqrt((2.) / self.prev_layer.n)
+        rand_fac = np.sqrt((2.) / self.prev_layer.n)
         self.W = np.random.randn(self.n, self.prev_layer.n) * rand_fac
         self.b = np.zeros((self.n, 1))
 
@@ -54,17 +54,20 @@ class NeuralNet(MlBase):
             ws = np.sum(np.square(v.W))
             regulariozation += ws
         regulariozation = (
-            1. / m) * (self.lambd / 2.) * regulariozation
+            1. / m) * regulariozation
         return regulariozation
 
     def compute_cost(self, Y):
         """Computes Softmax cost"""
         A = self.output_layer.A
         m = Y.shape[1]
-        logprobs = np.multiply(np.log(A), Y)
+        try:
+            logprobs = np.multiply(np.log(A), Y)
+        except Exception as exc:
+            print(exc, A)
         losses = -np.sum(logprobs, axis=0)
         cost = (1. / m) * np.sum(losses)
-        return cost + self.l2_regularization_cost(m)
+        return cost + (self.lambd / 2.) * self.l2_regularization_cost(m)
 
     def _forward(self, _layers):
         for i, layer in enumerate(_layers):
