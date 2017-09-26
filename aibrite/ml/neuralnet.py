@@ -1,10 +1,15 @@
-from aibrite.ml.core import MlBase
+from aibrite.ml.core import MlBase, Prediction
+
 import numpy as np
 
 
 class NeuralNetLayer:
     def __init__(self, n):
         self.n = n
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        return 'NeuralNetLayer'
 
 
 class InputLayer(NeuralNetLayer):
@@ -100,7 +105,7 @@ class NeuralNet(MlBase):
         self.hidden_layers = []
 
         input_layer = InputLayer(self.n)
-        input_layer.A = self.train_x_orig
+        input_layer.A = self.train_x
 
         self.layers.append(input_layer)
 
@@ -131,8 +136,11 @@ class NeuralNet(MlBase):
 
     def prepare_data(self, train_x, train_y, labels):
 
-        self.m = train_x.shape[1]
-        self.n = train_x.shape[0]
+        self.train_x = np.asarray(train_x).T
+        self.train_y = np.asarray(train_y).reshape(len(train_y), 1).T
+
+        self.m = self.train_x.shape[1]
+        self.n = self.train_x.shape[0]
 
         self.train_x_orig = train_x
         self.train_y_orig = train_y
@@ -143,7 +151,7 @@ class NeuralNet(MlBase):
         self.label_value_map = {v: i for i, v in enumerate(labels)}
         self.label_binary_matrix = np.eye(len(labels))
 
-        self._yvalues_binary = self.y_to_binary(self.train_y_orig)
+        self._yvalues_binary = self.y_to_binary(self.train_y)
 
         self.labels = labels
 
@@ -168,8 +176,8 @@ class NeuralNet(MlBase):
 
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
-        hiddens = hidden_layers[:] if (
-            hidden_layers != None) else [4]
+        hiddens = hidden_layers if (
+            hidden_layers != None) else tuple(4,)
         self.lambd = lambd
         self.minibatch_size = minibatch_size
         self.epochs = epochs
@@ -193,12 +201,12 @@ class NeuralNet(MlBase):
     def train(self, cb=None):
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
-            minibatch_size = self.train_x_orig.shape[1]
+            minibatch_size = self.train_x.shape[1]
         total_batch_index = 0
         for epoch in range(self.epochs):
             current_batch_index = 0
 
-            for batch in self.iterate_minibatches(self.train_x_orig, self.train_y_orig, minibatch_size, shuffle=self.shuffle):
+            for batch in self.iterate_minibatches(self.train_x, self.train_y, minibatch_size, shuffle=self.shuffle):
                 x_batch, y_batch = batch
                 y_values_binary = self.y_to_binary(y_batch)
                 self.input_layer.A = x_batch
@@ -214,19 +222,19 @@ class NeuralNet(MlBase):
                 current_batch_index += 1
                 total_batch_index += 1
 
-    def predict_and_test(self, test_x, test_y):
-        prediction_result = self.predict(test_x)
-        successes = prediction_result['predictions'] == test_y
-        total_success = np.sum(successes)
-        return {
-            "pred": prediction_result['predictions'],
-            'result': successes,
-            'total_success': total_success,
-            'rate': (total_success / successes.shape[1]) * 100
-        }
+    # def predict_and_test(self, test_x, test_y):
+    #     prediction_result = self.predict(test_x)
+    #     successes = prediction_result['predictions'] == test_y
+    #     total_success = np.sum(successes)
+    #     return {
+    #         "pred": prediction_result['predictions'],
+    #         'result': successes,
+    #         'total_success': total_success,
+    #         'rate': (total_success / len(successes)) * 100
+    #     }
 
     def predict(self, X):
-        self.input_layer.pA = X
+        self.input_layer.pA = np.asarray(X).T
 
         for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
             layer.pZ = layer.W.dot(layer.prev_layer.pA) + layer.b
@@ -234,9 +242,7 @@ class NeuralNet(MlBase):
 
         A = self.output_layer.pA
         maxindexes = np.argmax(A, axis=0)
-        prediction_values = np.array(
-            [self.labels[maxindexes[i]] for i, v in enumerate(maxindexes)]).reshape(1, A.shape[1])
-        return {
-            'probs': A,
-            'predictions': prediction_values
-        }
+        pred = [self.labels[maxindexes[i]]
+                for i, v in enumerate(maxindexes)]
+
+        return Prediction(predicted=pred, probabilities=A)

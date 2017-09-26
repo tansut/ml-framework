@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from aibrite.ml.neuralnet import NeuralNet
 from aibrite.ml.neuralnetwithmomentum import NeuralNetWithMomentum
 from aibrite.ml.neuralnetwithrmsprop import NeuralNetWithRMSprop
@@ -18,69 +18,9 @@ df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
 train_set, dev_set, test_set = NeuralNet.split(df.values, 0.8, 0.1, 0.1)
 
-train_x, train_y = train_set[:, 0:-1].T, train_set[:, -1:].T
-dev_x, dev_y = dev_set[:, 0:-1].T, dev_set[:, -1:].T
-test_x, test_y = test_set[:, 0:-1].T, test_set[:, -1:].T
-
-
-def confusion_matrix(expect, pred, labels=None):
-    if (labels == None):
-        labels = np.union1d(expect, pred)
-    m = [[0] * len(labels) for l in labels]
-    index = {v: i for i, v in enumerate(labels)}
-    for e, p in zip(expect, pred):
-        m[index[e]][index[p]] += 1
-
-    return m
-
-
-def calc_accuracy(conf_matrix):
-    t = sum(sum(l) for l in conf_matrix)
-    return sum(conf_matrix[i][i] for i in range(len(conf_matrix))) / t
-
-
-def calc_recall(cm):
-    tp = [cm[i][i] for i in range(len(cm))]
-    sm = [sum(l) for l in cm]
-    return [t / s if s > 0 else 0. for t, s in zip(tp, sm)]
-
-
-def calc_precision(cm):
-    tp = [cm[i][i] for i in range(len(cm))]
-    t = [[row[i] for row in cm] for i in range(len(cm[0]))]
-    sm = [sum(l) for l in t]
-    return [t / s if s > 0 else 0. for t, s in zip(tp, sm)]
-
-
-def calc_f1(cm):
-    p = np.asarray(calc_precision(cm))
-    r = np.asarray(calc_recall(cm))
-    return np.nan_to_num(2 * (r * p) / (r + p))
-
-
-def support(cm):
-    c = np.sum(cm, axis=1)
-    return c
-
-
-# (train_x, train_y), (test_x, test_y), (dev_x, dev_y) = get_datasets()
-
-
-def analyse(classifier, expected, predicted, labels=None):
-    print("Classification report for classifier %s:\n%s\n"
-          % (classifier, metrics.classification_report(expected, predicted, labels=labels)))
-    print("Confusion matrix:\n%s" %
-          metrics.confusion_matrix(expected, predicted, labels=labels))
-    print("Accuracy: {0}".format(accuracy_score(expected, predicted)))
-    print("------------------")
-    mat = confusion_matrix(expected, predicted, labels=labels)
-    print(mat)
-    print(calc_accuracy(mat))
-    print(calc_precision(mat))
-    print(calc_recall(mat))
-    print(calc_f1(mat))
-    print(support(mat))
-
+train_x, train_y = train_set[:, 0:-1], train_set[:, -1]
+dev_x, dev_y = dev_set[:, 0:-1], dev_set[:, -1]
+test_x, test_y = test_set[:, 0:-1], test_set[:, -1]
 
 costs = {}
 
@@ -114,29 +54,29 @@ def display_costs(costs, predict):
 
 
 classifier = NeuralNetWithAdam(train_x, train_y,
-                               hidden_layers=[6],
-                               iteration_count=1500,
-                               learning_rate=0.001,
-                               minibatch_size=100,
-                               epochs=1,
+                               hidden_layers=(6,),
+                               iteration_count=1000,
+                               learning_rate=0.005,
+                               minibatch_size=64,
+                               epochs=3,
                                learning_rate_decay=0.2,
                                # beta1=0.8,
                                shuffle=True)
-print("train NN")
-classifier.train(train_cb)
 
-predict = classifier.predict_and_test(test_x, test_y)
+train_result = classifier.train(train_cb)
+prediction = classifier.predict(test_x)
+report = NeuralNet.score_report(test_y, prediction.predicted)
+print("Classification report for {0}:\n{1}\n".format(
+    classifier, NeuralNet.format_score_report(report)))
 
-expected = np.squeeze(test_y.T)
-predicted = np.squeeze(predict["pred"].T)
 
-analyse(classifier, expected, predicted, labels=[3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+classifier = svm.SVC(gamma=0.001)
+classifier.fit(train_x, train_y)
+predicted = classifier.predict(test_x)
+report = NeuralNet.score_report(test_y, predicted)
+print("Classification report for {0}:\n{1}\n".format(
+    classifier, NeuralNet.format_score_report(report)))
 
-# classifier = svm.SVC(gamma=0.001)
-
-# classifier.fit(np.squeeze(train_x.T), np.squeeze(train_y.T))
-
-# predicted = classifier.predict(np.squeeze(test_x.T))
 
 # analyse(classifier, expected, predicted)
 
@@ -151,7 +91,7 @@ analyse(classifier, expected, predicted, labels=[3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
 # analyse(classifier, expected, predicted)
 
 
-# print("succ%: {0:.2f}".format(predict['rate']))
+#print("succ%: {0:.2f}".format(predict['rate']))
 
 
 # def plot_graph(*args):

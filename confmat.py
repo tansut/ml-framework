@@ -42,22 +42,22 @@ def support(cm):
     return c
 
 
-# _true = ['e', 'e', 'x', 'c', 'd', 'd', 'e']
-# _pred = ['e', 'x', 'e', 'e', 'd', 'e', 'x']
+_true = ['e', 'e', 'x', 'c', 'd', 'd', 'e']
+_pred = ['e', 'x', 'e', 'e', 'd', 'e', 'x']
 
-# mat = confusion_matrix(_true, _pred)
-# print(np.asarray(mat))
+mat = confusion_matrix(_true, _pred)
+print(np.asarray(mat))
 
-# mat2 = metrics.confusion_matrix(_true, _pred)
-# print(mat2)
+mat2 = metrics.confusion_matrix(_true, _pred)
+print(mat2)
 
-# print(mat == mat2)
+print(mat == mat2)
 
-# print("Classification report for classifier :\n%s\n"
-#       % (metrics.classification_report(_true, _pred)))
+print("Classification report for classifier :\n%s\n"
+      % (metrics.classification_report(_true, _pred)))
 
-# print(calc_accuracy(mat))
-# print(calc_precision(mat))
-# print(calc_recall(mat))
-# print(calc_f1(mat))
-# print(support(mat))
+print(calc_accuracy(mat))
+print(calc_precision(mat))
+print(calc_recall(mat))
+print(calc_f1(mat))
+print(support(mat))

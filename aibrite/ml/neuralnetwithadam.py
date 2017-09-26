@@ -4,6 +4,10 @@ import numpy as np
 
 class NeuralNetWithAdam(NeuralNet):
 
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        return 'NeuralNetWithAdam'
+
     def initialize_layers(self, hiddens):
         super().initialize_layers(hiddens)
         for i, layer in enumerate(self.hidden_layers + [self.output_layer]):

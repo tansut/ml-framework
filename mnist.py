@@ -31,14 +31,14 @@ def load_data(dataset):
 def get_datasets():
     train_set, valid_set, test_set = load_data('./data/mnist.pkl.gz')
 
-    train_x = np.array(train_set[0]).T
-    train_y = np.array(train_set[1]).reshape(len(train_set[1]), 1).T
+    train_x = train_set[0]
+    train_y = train_set[1].reshape(len(train_set[1]), 1)
 
-    test_x = np.array(test_set[0]).T
-    test_y = np.array(test_set[1]).reshape(len(test_set[1]), 1).T
+    test_x = test_set[0]
+    test_y = test_set[1].reshape(len(test_set[1]), 1)
 
-    valid_x = np.array(valid_set[0]).T
-    valid_y = np.array(valid_set[1]).reshape(len(valid_set[1]), 1).T
+    valid_x = valid_set[0]
+    valid_y = valid_set[1].reshape(len(valid_set[1]), 1)
 
     return (train_x, train_y), (test_x, test_y), (valid_x, valid_y)
 
