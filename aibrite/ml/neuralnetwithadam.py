@@ -5,8 +5,20 @@ import numpy as np
 class NeuralNetWithAdam(NeuralNet):
 
     def __repr__(self):
-        'Return a nicely formatted representation string'
-        return 'NeuralNetWithAdam'
+        return ("NeuralNetWithAdam[it={iteration_count},lr={learning_rate:6.4f},"
+                "lrd={learning_rate_decay:6.4f}, lambd={lambd:6.4f},"
+                "batch={minibatch_size}, epochs={epochs},"
+                "shuffle={shuffle}, beta1={beta1:6.4f},"
+                "beta2={beta2: 6.4f}, epsilon={epsilon:6.4f}]").format(iteration_count=self.iteration_count,
+                                                                       learning_rate=self.learning_rate,
+                                                                       learning_rate_decay=self.learning_rate_decay,
+                                                                       lambd=self.lambd,
+                                                                       minibatch_size=self.minibatch_size,
+                                                                       epochs=self.epochs,
+                                                                       shuffle=self.shuffle,
+                                                                       beta1=self.beta1,
+                                                                       beta2=self.beta2,
+                                                                       epsilon=self.epsilon)
 
     def initialize_layers(self, hiddens):
         super().initialize_layers(hiddens)

@@ -14,7 +14,6 @@ from nntest import NNTester
 
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
-# df = pd.read_csv("ex2data1.txt", sep=",")
 
 # split as train, test, validation (%80, %10, %10)
 split_data = LearningAlgorithm.split(df.values, 0.8, 0.1, 0.1)
@@ -54,6 +53,3 @@ with tester.getExecutor() as executor:
             nn = data['nn']
             print("{}: success: {:.2f}".format(
                 data['id'], pred_result['rate']))
-
-
-print("%f seconds" % (time.time() - start_time))

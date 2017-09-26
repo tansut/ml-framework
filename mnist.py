@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
+from aibrite.ml.neuralnet import NeuralNet
 
 
 def load_data(dataset):
@@ -32,28 +33,32 @@ def get_datasets():
     train_set, valid_set, test_set = load_data('./data/mnist.pkl.gz')
 
     train_x = train_set[0]
-    train_y = train_set[1].reshape(len(train_set[1]), 1)
+    train_y = train_set[1]
 
     test_x = test_set[0]
-    test_y = test_set[1].reshape(len(test_set[1]), 1)
+    test_y = test_set[1]
 
     valid_x = valid_set[0]
-    valid_y = valid_set[1].reshape(len(valid_set[1]), 1)
+    valid_y = valid_set[1]
 
     return (train_x, train_y), (test_x, test_y), (valid_x, valid_y)
 
 
-# (train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
+(train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
 
+nn = NeuralNetWithAdam(train_x, train_y,
+                       hidden_layers=(9,),
+                       iteration_count=50,
+                       learning_rate=0.001,
+                       minibatch_size=0,
+                       epochs=1,
+                       shuffle=True)
 
-# nn = NeuralNetWithAdam(
-# train_x, train_y, iteration_count=500, learning_rate=0.01, epochs=2,
-# minibatch_size=25000, shuffle=True)
+train_result = nn.train()
 
-# nn.train()
+prediction_result = nn.predict(test_x)
 
-# res = nn.predict_and_test(test_x, test_y)
+report = NeuralNet.score_report(test_y, prediction_result.predicted)
 
-# print("succ: {}", res["rate"])
-
-# print(train_x.shape, train_y.shape)
+print("{0}:\n{1}\n".format(
+    nn, NeuralNet.format_score_report(report)))

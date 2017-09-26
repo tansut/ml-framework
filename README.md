@@ -1,1 +1,3 @@
-# Deep NN Sandbox
+# Aibrite Deep Neural Network Framework (pre-release)
+
+

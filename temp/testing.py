@@ -6,11 +6,12 @@ class NNTester:
     def test_it(self, id, nn_class, train_x, train_y, test_x, test_y, **kvargs):
         nn = nn_class(train_x, train_y, **kvargs)
         train_result = nn.train()
-        pred_result = nn.predict_and_test(test_x, test_y)
+        pred = nn.predict(test_x)
+
         return {
             'self': self
             'id': id,
-            'pred_result': pred_result,
+            'pred_result': pred,
             'train_result': train_result,
             'nn': nn
         }

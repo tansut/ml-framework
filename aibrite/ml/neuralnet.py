@@ -7,10 +7,6 @@ class NeuralNetLayer:
     def __init__(self, n):
         self.n = n
 
-    def __repr__(self):
-        'Return a nicely formatted representation string'
-        return 'NeuralNetLayer'
-
 
 class InputLayer(NeuralNetLayer):
     def __init__(self, n, next_layer=None):
@@ -41,6 +37,15 @@ class OutputLayer(HiddenLayer):
 
 
 class NeuralNet(MlBase):
+
+    def __repr__(self):
+        return "NeuralNet[it={iteration_count},lr={learning_rate:6.4f},lrd={learning_rate_decay:6.4f},lambd={lambd:6.4f},batch={minibatch_size},epochs={epochs}, shuffle={shuffle}]".format(iteration_count=self.iteration_count,
+                                                                                                                                                                                            learning_rate=self.learning_rate,
+                                                                                                                                                                                            learning_rate_decay=self.learning_rate_decay,
+                                                                                                                                                                                            lambd=self.lambd,
+                                                                                                                                                                                            minibatch_size=self.minibatch_size,
+                                                                                                                                                                                            epochs=self.epochs,
+                                                                                                                                                                                            shuffle=self.shuffle)
 
     def l2_regularization_cost(self, m):
         regulariozation = 0.0
@@ -167,7 +172,7 @@ class NeuralNet(MlBase):
                  hidden_layers=None,
                  learning_rate=0.01,
                  learning_rate_decay=0,
-                 iteration_count=1000,
+                 iteration_count=2000,
                  lambd=0.0001,
                  minibatch_size=0,
                  epochs=1,
@@ -177,7 +182,7 @@ class NeuralNet(MlBase):
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
         hiddens = hidden_layers if (
-            hidden_layers != None) else tuple(4,)
+            hidden_layers != None) else (4,)
         self.lambd = lambd
         self.minibatch_size = minibatch_size
         self.epochs = epochs
@@ -221,17 +226,6 @@ class NeuralNet(MlBase):
                                 current_batch_index, total_batch_index)
                 current_batch_index += 1
                 total_batch_index += 1
-
-    # def predict_and_test(self, test_x, test_y):
-    #     prediction_result = self.predict(test_x)
-    #     successes = prediction_result['predictions'] == test_y
-    #     total_success = np.sum(successes)
-    #     return {
-    #         "pred": prediction_result['predictions'],
-    #         'result': successes,
-    #         'total_success': total_success,
-    #         'rate': (total_success / len(successes)) * 100
-    #     }
 
     def predict(self, X):
         self.input_layer.pA = np.asarray(X).T
