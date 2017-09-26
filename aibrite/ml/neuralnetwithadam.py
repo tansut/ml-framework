@@ -5,12 +5,13 @@ import numpy as np
 class NeuralNetWithAdam(NeuralNet):
 
     def __repr__(self):
-        return ("NeuralNetWithAdam[it={iteration_count},lr={learning_rate:6.4f},"
+        return ("NeuralNetWithAdam[it={iteration_count},lr={learning_rate:6.4f},hl={hidden_layers},"
                 "lrd={learning_rate_decay:6.4f}, lambd={lambd:6.4f},"
                 "batch={minibatch_size}, epochs={epochs},"
                 "shuffle={shuffle}, beta1={beta1:6.4f},"
                 "beta2={beta2: 6.4f}, epsilon={epsilon:6.4f}]").format(iteration_count=self.iteration_count,
                                                                        learning_rate=self.learning_rate,
+                                                                       hidden_layers=self.hidden_layers,
                                                                        learning_rate_decay=self.learning_rate_decay,
                                                                        lambd=self.lambd,
                                                                        minibatch_size=self.minibatch_size,
@@ -20,9 +21,9 @@ class NeuralNetWithAdam(NeuralNet):
                                                                        beta2=self.beta2,
                                                                        epsilon=self.epsilon)
 
-    def initialize_layers(self, hiddens):
-        super().initialize_layers(hiddens)
-        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+    def initialize_layers(self):
+        super().initialize_layers()
+        for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             layer.VdW = np.zeros(layer.W.shape)
             layer.Vdb = np.zeros(layer.b.shape)
             layer.SdW = np.zeros(layer.W.shape)

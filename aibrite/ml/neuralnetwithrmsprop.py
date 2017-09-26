@@ -5,19 +5,20 @@ import numpy as np
 class NeuralNetWithRMSprop(NeuralNet):
 
     def __repr__(self):
-        return ("NeuralNetWithRMSprop[it={iteration_count},lr={learning_rate:6.4f},lrd={learning_rate_decay:6.4f},lambd={lambd:6.4f},batch={minibatch_size},epochs={epochs},shuffle={shuffle},beta={beta:6.4f},epslion={epsilon:6.4f}]").format(iteration_count=self.iteration_count,
-                                                                                                                                                                                                                                                learning_rate=self.learning_rate,
-                                                                                                                                                                                                                                                learning_rate_decay=self.learning_rate_decay,
-                                                                                                                                                                                                                                                lambd=self.lambd,
-                                                                                                                                                                                                                                                minibatch_size=self.minibatch_size,
-                                                                                                                                                                                                                                                epochs=self.epochs,
-                                                                                                                                                                                                                                                shuffle=self.shuffle,
-                                                                                                                                                                                                                                                beta=self.beta,
-                                                                                                                                                                                                                                                epsilon=self.epsilon)
+        return ("NeuralNetWithRMSprop[it={iteration_count},lr={learning_rate:6.4f},hl={hidden_layers},lrd={learning_rate_decay:6.4f},lambd={lambd:6.4f},batch={minibatch_size},epochs={epochs},shuffle={shuffle},beta={beta:6.4f},epslion={epsilon:6.4f}]").format(iteration_count=self.iteration_count,
+                                                                                                                                                                                                                                                                   learning_rate=self.learning_rate,
+                                                                                                                                                                                                                                                                   hidden_layers=self.hidden_layers,
+                                                                                                                                                                                                                                                                   learning_rate_decay=self.learning_rate_decay,
+                                                                                                                                                                                                                                                                   lambd=self.lambd,
+                                                                                                                                                                                                                                                                   minibatch_size=self.minibatch_size,
+                                                                                                                                                                                                                                                                   epochs=self.epochs,
+                                                                                                                                                                                                                                                                   shuffle=self.shuffle,
+                                                                                                                                                                                                                                                                   beta=self.beta,
+                                                                                                                                                                                                                                                                   epsilon=self.epsilon)
 
-    def initialize_layers(self, hiddens):
-        super().initialize_layers(hiddens)
-        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+    def initialize_layers(self):
+        super().initialize_layers()
+        for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             layer.SdW = np.zeros(layer.W.shape)
             layer.Sdb = np.zeros(layer.b.shape)
 

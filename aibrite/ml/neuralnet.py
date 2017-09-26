@@ -26,7 +26,7 @@ class HiddenLayer(NeuralNetLayer):
         self.next_layer = next_layer
 
     def init_weight_bias(self):
-        rand_fac = np.sqrt(2. / self.prev_layer.n)
+        rand_fac = 0.1  # np.sqrt((2.) / self.prev_layer.n)
         self.W = np.random.randn(self.n, self.prev_layer.n) * rand_fac
         self.b = np.zeros((self.n, 1))
 
@@ -39,17 +39,18 @@ class OutputLayer(HiddenLayer):
 class NeuralNet(MlBase):
 
     def __repr__(self):
-        return "NeuralNet[it={iteration_count},lr={learning_rate:6.4f},lrd={learning_rate_decay:6.4f},lambd={lambd:6.4f},batch={minibatch_size},epochs={epochs}, shuffle={shuffle}]".format(iteration_count=self.iteration_count,
-                                                                                                                                                                                            learning_rate=self.learning_rate,
-                                                                                                                                                                                            learning_rate_decay=self.learning_rate_decay,
-                                                                                                                                                                                            lambd=self.lambd,
-                                                                                                                                                                                            minibatch_size=self.minibatch_size,
-                                                                                                                                                                                            epochs=self.epochs,
-                                                                                                                                                                                            shuffle=self.shuffle)
+        return "NeuralNet[it={iteration_count},lr={learning_rate:6.4f},hl={hidden_layers},lrd={learning_rate_decay:6.4f},lambd={lambd:6.4f},batch={minibatch_size},epochs={epochs}, shuffle={shuffle}]".format(iteration_count=self.iteration_count,
+                                                                                                                                                                                                               learning_rate=self.learning_rate,
+                                                                                                                                                                                                               hidden_layers=self.hidden_layers,
+                                                                                                                                                                                                               learning_rate_decay=self.learning_rate_decay,
+                                                                                                                                                                                                               lambd=self.lambd,
+                                                                                                                                                                                                               minibatch_size=self.minibatch_size,
+                                                                                                                                                                                                               epochs=self.epochs,
+                                                                                                                                                                                                               shuffle=self.shuffle)
 
     def l2_regularization_cost(self, m):
         regulariozation = 0.0
-        for i, v in enumerate(self.hidden_layers + [self.output_layer]):
+        for i, v in enumerate(self._hidden_layers + [self.output_layer]):
             ws = np.sum(np.square(v.W))
             regulariozation += ws
         regulariozation = (
@@ -90,7 +91,7 @@ class NeuralNet(MlBase):
 
     def _backward(self, Y, epoch, current_batch_index, total_batch_index):
         self.output_layer.dZ = self.output_layer.A - Y
-        for i, v in reversed(list(enumerate(self.hidden_layers + [self.output_layer]))):
+        for i, v in reversed(list(enumerate(self._hidden_layers + [self.output_layer]))):
             self._backward_for_layer(
                 v, Y, epoch, current_batch_index, total_batch_index)
 
@@ -101,13 +102,14 @@ class NeuralNet(MlBase):
         layer.b = layer.b - lr * layer.db
 
     def _grads(self, Y, epoch, current_batch_index, total_batch_index):
-        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+        for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             self._grad_layer(
                 layer, Y, epoch, current_batch_index, total_batch_index)
 
-    def initialize_layers(self, hiddens):
+    def initialize_layers(self):
+        hiddens = self.hidden_layers
         self.layers = []
-        self.hidden_layers = []
+        self._hidden_layers = []
 
         input_layer = InputLayer(self.n)
         input_layer.A = self.train_x
@@ -123,7 +125,7 @@ class NeuralNet(MlBase):
                 v, MlBase.relu, MlBase.relu_d, prev_layer=prev_layer)
             layer.init_weight_bias()
             self.layers.append(layer)
-            self.hidden_layers.append(layer)
+            self._hidden_layers.append(layer)
             prev_layer = layer
 
         output_layer = OutputLayer(
@@ -181,7 +183,7 @@ class NeuralNet(MlBase):
 
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
-        hiddens = hidden_layers if (
+        self.hidden_layers = hidden_layers if (
             hidden_layers != None) else (4,)
         self.lambd = lambd
         self.minibatch_size = minibatch_size
@@ -189,7 +191,7 @@ class NeuralNet(MlBase):
         self.shuffle = shuffle
         self.learning_rate_decay = learning_rate_decay
         self.prepare_data(train_x, train_y, labels)
-        self.initialize_layers(hiddens)
+        self.initialize_layers()
 
     def iterate_minibatches(self, inputs, targets, batchsize, shuffle=False):
         assert inputs.shape[1] == targets.shape[1]
@@ -230,7 +232,7 @@ class NeuralNet(MlBase):
     def predict(self, X):
         self.input_layer.pA = np.asarray(X).T
 
-        for i, layer in enumerate(self.hidden_layers + [self.output_layer]):
+        for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             layer.pZ = layer.W.dot(layer.prev_layer.pA) + layer.b
             layer.pA = layer.activation_fn(layer.pZ)
 
