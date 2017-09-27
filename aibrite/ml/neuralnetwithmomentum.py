@@ -35,6 +35,12 @@ class NeuralNetWithMomentum(NeuralNet):
         layer.W = layer.W - lr * layer.VdW
         layer.b = layer.b - lr * layer.Vdb
 
+    def get_hyperparameters(self):
+        hp = super().get_hyperparameters()
+        hp['beta'] = self.beta
+
+        return hp
+
     def __init__(self, train_x, train_y, beta=0.9, *args, **kwargs):
         super().__init__(train_x, train_y, *args, **kwargs)
         self.beta = beta

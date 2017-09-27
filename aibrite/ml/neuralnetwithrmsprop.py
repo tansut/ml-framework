@@ -38,6 +38,11 @@ class NeuralNetWithRMSprop(NeuralNet):
         layer.b = layer.b - lr * \
             (layer.db / (np.sqrt(layer.Sdb) + self.epsilon))
 
+    def get_hyperparameters(self):
+        hp = super().get_hyperparameters()
+        hp['beta'] = self.beta
+        hp['epsilon'] = self.epsilon
+
     def __init__(self, train_x, train_y, beta=0.9, epsilon=0.00000001, *args, **kwargs):
         super().__init__(train_x, train_y, *args, **kwargs)
         self.beta = beta

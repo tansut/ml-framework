@@ -58,6 +58,14 @@ class NeuralNetWithAdam(NeuralNet):
             (layer.VdbCorrected /
              (np.sqrt(layer.SdbCorrected) + self.epsilon))
 
+    def get_hyperparameters(self):
+        hp = super().get_hyperparameters()
+        hp['beta1'] = self.beta1
+        hp['beta2'] = self.beta2
+        hp['epsilon'] = self.epsilon
+
+        return hp
+
     def __init__(self, train_x, train_y, beta1=0.9, beta2=0.999, epsilon=0.00000001, *args, **kwargs):
         super().__init__(train_x, train_y, *args, **kwargs)
         self.beta1 = beta1

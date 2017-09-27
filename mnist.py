@@ -48,12 +48,11 @@ def get_datasets():
 
 nn = NeuralNetWithAdam(train_x, train_y,
                        hidden_layers=(9,),
-                       iteration_count=50,
+                       iteration_count=100,
                        learning_rate=0.001,
                        minibatch_size=0,
-                       epochs=1,
-                       shuffle=True)
-
+                       epochs=1)
+print("Training ...")
 train_result = nn.train()
 
 prediction_result = nn.predict(test_x)

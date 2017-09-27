@@ -1,11 +1,74 @@
 import numpy as np
 from collections import namedtuple
+import datetime
 
-
-Prediction = namedtuple("Prediction", ["predicted", 'probabilities'])
+# Prediction = namedtuple("Prediction", ["predicted", 'probabilities'])
 
 ScoreReport = namedtuple("ScoreReport", ["labels",
                                          "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
+
+# TrainResult = namedtuple('TrainResult', ['started', 'completed'])
+
+
+class TrainResult:
+    def __init__(self):
+        self.started = datetime.datetime.now()
+        self.completed = None
+
+    def complete(self):
+        self.completed = datetime.datetime.now()
+        return self
+
+    def elapsed(self):
+        return (self.completed - self.started).total_seconds()
+
+
+class PredictionResult:
+    def __init__(self):
+        self.started = datetime.datetime.now()
+        self.completed = None
+
+    def complete(self, predicted, probabilities):
+        self.completed = datetime.datetime.now()
+        self.predicted = predicted
+        self.probabilities = probabilities
+        return self
+
+    def elapsed(self):
+        return (self.completed - self.started).total_seconds()
+
+
+class NeuralNetLayer:
+    def __init__(self, n):
+        self.n = n
+
+
+class InputLayer(NeuralNetLayer):
+    def __init__(self, n, next_layer=None):
+        super().__init__(n)
+        self.A = None
+        self.next_layer = next_layer
+
+
+class HiddenLayer(NeuralNetLayer):
+    def __init__(self, n,  activation_fn, activaion_fn_derivative, prev_layer, next_layer=None):
+        super().__init__(n)
+        self.W = None
+        self.b = None
+        self.activation_fn = activation_fn
+        self.activaion_fn_derivative = activaion_fn_derivative
+        self.prev_layer = prev_layer
+        self.next_layer = next_layer
+
+    def init_weight_bias(self):
+        rand_fac = np.sqrt((2.) / self.prev_layer.n)
+        self.W = np.random.randn(self.n, self.prev_layer.n) * rand_fac
+        self.b = np.zeros((self.n, 1))
+
+
+class OutputLayer(HiddenLayer):
+    def __init__(self, n, activation_fn, prev_layer):
+        super().__init__(n, activation_fn, None, prev_layer)
 
 
 class MlBase:
@@ -45,7 +108,7 @@ class MlBase:
         """Compute softmax values for each sets of scores in x."""
         return np.exp(x) / np.sum(np.exp(x), axis=0)
 
-    def split(arr, *ratios):
+    def split(arr,  *ratios):
         sizes = (np.array(ratios) * len(arr))
         sizes = np.round(sizes).astype(int)
         sizes[0] = sizes[0] + len(arr) - np.sum(sizes)
@@ -113,7 +176,7 @@ class MlBase:
             recall=recall,
             f1=f1,
             support=support,
-            totals=(np.average(precision, weights=support), np.average(recall, weights=support), np.average(f1, weights=support), sum(support)))
+            totals=(np.average(precision, weights=support), np.average(recall, weights=support), np.average(f1, weights=support), sum(support).astype(int)))
 
     def format_score_report(report):
 

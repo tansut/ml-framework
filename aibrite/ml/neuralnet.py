@@ -1,39 +1,8 @@
-from aibrite.ml.core import MlBase, Prediction
+from aibrite.ml.core import MlBase, PredictionResult, TrainResult, NeuralNetLayer, InputLayer, OutputLayer, HiddenLayer
 
 import numpy as np
-
-
-class NeuralNetLayer:
-    def __init__(self, n):
-        self.n = n
-
-
-class InputLayer(NeuralNetLayer):
-    def __init__(self, n, next_layer=None):
-        super().__init__(n)
-        self.A = None
-        self.next_layer = next_layer
-
-
-class HiddenLayer(NeuralNetLayer):
-    def __init__(self, n,  activation_fn, activaion_fn_derivative, prev_layer, next_layer=None):
-        super().__init__(n)
-        self.W = None
-        self.b = None
-        self.activation_fn = activation_fn
-        self.activaion_fn_derivative = activaion_fn_derivative
-        self.prev_layer = prev_layer
-        self.next_layer = next_layer
-
-    def init_weight_bias(self):
-        rand_fac = np.sqrt((2.) / self.prev_layer.n)
-        self.W = np.random.randn(self.n, self.prev_layer.n) * rand_fac
-        self.b = np.zeros((self.n, 1))
-
-
-class OutputLayer(HiddenLayer):
-    def __init__(self, n, activation_fn, prev_layer):
-        super().__init__(n, activation_fn, None, prev_layer)
+import time
+import datetime
 
 
 class NeuralNet(MlBase):
@@ -173,6 +142,17 @@ class NeuralNet(MlBase):
         return np.array([self.label_to_binary(
             v) for v in y[0, :]]).T
 
+    def get_hyperparameters(self):
+        return {
+            'learning_rate': self.learning_rate,
+            'hidden_layers': self.hidden_layers,
+            'iteration_count': self.iteration_count,
+            'learning_rate_decay': self.learning_rate_decay,
+            'lambd': self.lambd,
+            'minibatch_size': self.minibatch_size,
+            'shuffle': self.shuffle
+        }
+
     def __init__(self, train_x, train_y,
                  hidden_layers=None,
                  learning_rate=0.01,
@@ -209,6 +189,7 @@ class NeuralNet(MlBase):
             yield inputs[:, excerpt], targets[:, excerpt]
 
     def train(self, cb=None):
+        self.train_result = TrainResult()
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
             minibatch_size = self.train_x.shape[1]
@@ -231,8 +212,10 @@ class NeuralNet(MlBase):
                                 current_batch_index, total_batch_index)
                 current_batch_index += 1
                 total_batch_index += 1
+        return self.train_result.complete()
 
     def predict(self, X):
+        self.prediction_result = PredictionResult()
         self.input_layer.pA = np.asarray(X).T
 
         for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
@@ -243,5 +226,4 @@ class NeuralNet(MlBase):
         maxindexes = np.argmax(A, axis=0)
         pred = [self.labels[maxindexes[i]]
                 for i, v in enumerate(maxindexes)]
-
-        return Prediction(predicted=pred, probabilities=A)
+        return self.prediction_result.complete(pred, A)
