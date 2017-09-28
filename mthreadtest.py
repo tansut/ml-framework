@@ -59,11 +59,11 @@ def predict(neuralnet, test_id, test_set):
     predicted = neuralnet.prediction_result.predicted
     hyper_parameters = neuralnet.get_hyperparameters()
 
-    data = analyser.add_data(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
-                             extra_data={
-                                 'train_time': neuralnet.train_result.elapsed(),
-                                 'pred_time': neuralnet.prediction_result.elapsed()
-                             })
+    analyser.add_to_prediction_log(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
+                                   extra_data={
+                                       'train_time': neuralnet.train_result.elapsed(),
+                                       'pred_time': neuralnet.prediction_result.elapsed()
+                                   })
 
 
 def train(neuralnet_class, train_x, train_y, **kvargs):
@@ -107,20 +107,26 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
 
             if (len(future_list) == 0):
                 analyser.to_csv('./analyse_results.csv')
-                print_result(analyser.df)
+<< << << < HEAD
+    print_result(analyser.df)
+== == == =
+    df = analyser.prediction_log[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
+        ['f1'], ascending=False)
+    print(df)
+>>>>>> > 2a3dce3cfdd6e468b595346e61fb11ef0ac59871
 
-            # if len(future_list) == 0:
+# if len(future_list) == 0:
 
-            #     print(
-            #         analyser.df[['classifier', 'test_set', 'f1']].sort_values(['f1'], ascending=False))
-            #     print("-" * 40)
-            #     print("RESULTS")
-            #     print("-" * 40)
-            #     print("Completed: {0:.2f} seconds\n".format(
-            #         time.time() - start_time))
-            #     print(
-            #         "It seems best f1 is {f1:.2f} with {nn} configuration(s)\n".format(f1=best_f1, nn=len(best_nns)))
-            #     for i, rep in enumerate(best_reports):
-            #         print("[{0}]{1}\n{2}".format(best_test_sets[i],
-            #                                      best_nns[i], NeuralNet.format_score_report(rep)))
-            #     print("-" * 40)
+#     print(
+#         analyser.df[['classifier', 'test_set', 'f1']].sort_values(['f1'], ascending=False))
+#     print("-" * 40)
+#     print("RESULTS")
+#     print("-" * 40)
+#     print("Completed: {0:.2f} seconds\n".format(
+#         time.time() - start_time))
+#     print(
+#         "It seems best f1 is {f1:.2f} with {nn} configuration(s)\n".format(f1=best_f1, nn=len(best_nns)))
+#     for i, rep in enumerate(best_reports):
+#         print("[{0}]{1}\n{2}".format(best_test_sets[i],
+#                                      best_nns[i], NeuralNet.format_score_report(rep)))
+#     print("-" * 40)
