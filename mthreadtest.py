@@ -11,7 +11,7 @@ from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
 from aibrite.ml.analyser import NeuralNetAnalyser
 
 
-df = pd.read_csv("./data/winequality-red.csv", sep=";")
+df = pd.read_csv("./data/ex2data1.csv", sep=",")
 
 # df = df[df['quality'] != 8.0]
 # df = df[df['quality'] != 3.0]
@@ -29,102 +29,37 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [10]
-learning_rates = [0.003, 0.002, 0.001]
-hidden_layers = [(24, 36, 24, 12, 6)]
+iterations = [10, 20]
+learning_rates = [0.03]
+hidden_layers = [(4, 6, 4, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
 # test_sets = {'train': (train_x, train_y)}
 
 
-analyser = NeuralNetAnalyser(log_dir='./analyser_logs')
+def jb(analyser, results):
+    pass
 
 
-future_list = []
+analyser = NeuralNetAnalyser(log_dir='./analyserlogs', job_completed=jb)
+
 start_time = time.time()
 
-
-# def print_result(df):
-#     df = df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
-#         ['f1'], ascending=False)
-#     with pd.option_context('expand_frame_repr', False):
-#         print(df)
-
-
-# def predict(neuralnet, test_id, test_set):
-#     test_input, expected = test_set
-#     neuralnet.predict(test_input)
-#     predicted = neuralnet.prediction_result.predicted
-#     hyper_parameters = neuralnet.get_hyperparameters()
-
-#     analyser.add_to_prediction_log(neuralnet.__class__.__name__, neuralnet.instance_id, test_id, expected, predicted, hyper_parameters,
-#                                    extra_data={
-#                                        'train_time': neuralnet.train_result.elapsed(),
-#                                        'pred_time': neuralnet.prediction_result.elapsed()
-#                                    })
-
-
-# def train(neuralnet_class, train_x, train_y, **kvargs):
-#     neuralnet = neuralnet_class(train_x, train_y, **kvargs)
-#     neuralnet.train()
-#     return neuralnet
-
+train_set = (train_x, train_y)
 
 for it in iterations:
     for lr in learning_rates:
         for hl in hidden_layers:
-            neuralnet = NeuralNetWithAdam(train_x, train_y,
-                                          hidden_layers=hl,
-                                          learning_rate=lr,
-                                          iteration_count=it,
-                                          lambd=0.4,
-                                          epochs=3,
-                                          shuffle=True,
-                                          minibatch_size=0)
-            analyser.submit(neuralnet, test_sets)
+            analyser.submit(NeuralNetWithAdam, train_set, test_sets,
+                            hidden_layers=hl,
+                            learning_rate=lr,
+                            iteration_count=it,
+                            lambd=0.4,
+                            epochs=3,
+                            shuffle=True,
+                            minibatch_size=0)
+            analyser.foo = "tansu"
 
 analyser.start()
 analyser.print_summary()
-
-# with concurrent.futures.ProcessPoolExecutor() as executor:
-#     print("Starting with {0} max-workers...".format(executor._max_workers))
-
-#                 future_list.append(e)
-#     for future in concurrent.futures.as_completed(future_list):
-#         try:
-#             neuralnet = future.result()
-#         except Exception as exc:
-#             print(exc)
-#             future_list.remove(future)
-#         else:
-#             for i, v in test_sets.items():
-#                 predict(neuralnet, i, v)
-#                 # if (best_f1 <= report.totals[2]):
-#                 #     best_f1 = report.totals[2]
-#                 #     best_nns.append(result[0])
-#                 #     best_reports.append(report)
-#                 #     best_test_sets.append(i)
-
-#             future_list.remove(future)
-
-#             if (len(future_list) == 0):
-#                 analyser.to_csv('./analyse_results.csv')
-#                 print_result(analyser.prediction_log)
-
-
-# if len(future_list) == 0:
-
-#     print(
-#         analyser.df[['classifier', 'test_set', 'f1']].sort_values(['f1'], ascending=False))
-#     print("-" * 40)
-#     print("RESULTS")
-#     print("-" * 40)
-#     print("Completed: {0:.2f} seconds\n".format(
-#         time.time() - start_time))
-#     print(
-#         "It seems best f1 is {f1:.2f} with {nn} configuration(s)\n".format(f1=best_f1, nn=len(best_nns)))
-#     for i, rep in enumerate(best_reports):
-#         print("[{0}]{1}\n{2}".format(best_test_sets[i],
-#                                      best_nns[i], NeuralNet.format_score_report(rep)))
-#     print("-" * 40)

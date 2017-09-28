@@ -164,7 +164,7 @@ class MlBase:
         return c
 
     def score_report(expect, pred, labels=None):
-        if (labels == None):
+        if (not type(labels) is np.ndarray and labels == None):
             labels = np.union1d(expect, pred)
 
         cm = MlBase.confusion_matrix(expect, pred, labels=labels)
