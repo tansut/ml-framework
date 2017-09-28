@@ -29,7 +29,7 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [10, 20]
+iterations = [30, 50]
 learning_rates = [0.03]
 hidden_layers = [(4, 6, 4, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
@@ -43,8 +43,6 @@ def jb(analyser, results):
 
 
 analyser = NeuralNetAnalyser(log_dir='./analyserlogs', job_completed=jb)
-
-start_time = time.time()
 
 train_set = (train_x, train_y)
 
