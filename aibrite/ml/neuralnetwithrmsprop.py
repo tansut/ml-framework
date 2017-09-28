@@ -22,16 +22,15 @@ class NeuralNetWithRMSprop(NeuralNet):
             layer.SdW = np.zeros(layer.W.shape)
             layer.Sdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_index, total_batch_index)
+    def _backward_for_layer(self, layer, iteration_data):
+        super()._backward_for_layer(layer, Y, iteration_data)
         layer.SdW = self.beta * layer.SdW + \
             (1.0 - self.beta) * np.square(layer.dW)
         layer.Sdb = self.beta * layer.Sdb + \
             (1.0 - self.beta) * np.square(layer.db)
 
-    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+    def _grad_layer(self, layer, Y, iteration_data):
+        lr = iteration_data.calculated_learning_rate
 
         layer.W = layer.W - lr * \
             (layer.dW / (np.sqrt(layer.SdW) + self.epsilon))

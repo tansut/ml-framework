@@ -8,13 +8,13 @@ from aibrite.ml.neuralnet import NeuralNet
 from aibrite.ml.neuralnetwithmomentum import NeuralNetWithMomentum
 from aibrite.ml.neuralnetwithrmsprop import NeuralNetWithRMSprop
 from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
+from aibrite.ml.analyser import NeuralNetAnalyser
 
-from aibrite.ml.analyser import Analyser
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
-df = df[df['quality'] != 8.0]
-df = df[df['quality'] != 3.0]
+# df = df[df['quality'] != 8.0]
+# df = df[df['quality'] != 3.0]
 
 np.random.seed(5)
 data = df.values
@@ -29,91 +29,89 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [2500]
+iterations = [10]
 learning_rates = [0.003, 0.002, 0.001]
 hidden_layers = [(24, 36, 24, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
-
-
-analyser = Analyser()
-
 # test_sets = {'train': (train_x, train_y)}
+
+
+analyser = NeuralNetAnalyser(log_dir='./analyser_logs')
+
 
 future_list = []
 start_time = time.time()
-best_nns, best_reports, best_test_sets, best_f1 = [], [], [], -1
 
 
-def print_result(df):
-    df = df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
-        ['f1'], ascending=False)
-    with pd.option_context('expand_frame_repr', False):
-        print(df)
+# def print_result(df):
+#     df = df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
+#         ['f1'], ascending=False)
+#     with pd.option_context('expand_frame_repr', False):
+#         print(df)
 
 
-def predict(neuralnet, test_id, test_set):
-    test_input, expected = test_set
-    neuralnet.predict(test_input)
-    predicted = neuralnet.prediction_result.predicted
-    hyper_parameters = neuralnet.get_hyperparameters()
+# def predict(neuralnet, test_id, test_set):
+#     test_input, expected = test_set
+#     neuralnet.predict(test_input)
+#     predicted = neuralnet.prediction_result.predicted
+#     hyper_parameters = neuralnet.get_hyperparameters()
 
-    analyser.add_to_prediction_log(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
-                                   extra_data={
-                                       'train_time': neuralnet.train_result.elapsed(),
-                                       'pred_time': neuralnet.prediction_result.elapsed()
-                                   })
-
-
-def train(neuralnet_class, train_x, train_y, **kvargs):
-    neuralnet = neuralnet_class(train_x, train_y, **kvargs)
-    neuralnet.train()
-    return neuralnet
+#     analyser.add_to_prediction_log(neuralnet.__class__.__name__, neuralnet.instance_id, test_id, expected, predicted, hyper_parameters,
+#                                    extra_data={
+#                                        'train_time': neuralnet.train_result.elapsed(),
+#                                        'pred_time': neuralnet.prediction_result.elapsed()
+#                                    })
 
 
-with concurrent.futures.ProcessPoolExecutor() as executor:
-    print("Starting with {0} max-workers...".format(executor._max_workers))
-    for it in iterations:
-        for lr in learning_rates:
-            for hl in hidden_layers:
-                e = executor.submit(train, NeuralNetWithAdam, train_x, train_y,
-                                    hidden_layers=hl,
-                                    learning_rate=lr,
-                                    iteration_count=it,
-                                    lambd=0.4,
-                                    epochs=3,
-                                    shuffle=True,
-                                    minibatch_size=0
-                                    # labels=labels
-                                    )
-                future_list.append(e)
-    for future in concurrent.futures.as_completed(future_list):
-        try:
-            neuralnet = future.result()
-        except Exception as exc:
-            print(exc)
-            future_list.remove(future)
-        else:
-            for i, v in test_sets.items():
-                predict(neuralnet, i, v)
-                # if (best_f1 <= report.totals[2]):
-                #     best_f1 = report.totals[2]
-                #     best_nns.append(result[0])
-                #     best_reports.append(report)
-                #     best_test_sets.append(i)
+# def train(neuralnet_class, train_x, train_y, **kvargs):
+#     neuralnet = neuralnet_class(train_x, train_y, **kvargs)
+#     neuralnet.train()
+#     return neuralnet
 
-            future_list.remove(future)
 
-            if (len(future_list) == 0):
-                analyser.to_csv('./analyse_results.csv')
-<< << << < HEAD
-    print_result(analyser.df)
-== == == =
-    df = analyser.prediction_log[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
-        ['f1'], ascending=False)
-    print(df)
->>>>>> > 2a3dce3cfdd6e468b595346e61fb11ef0ac59871
+for it in iterations:
+    for lr in learning_rates:
+        for hl in hidden_layers:
+            neuralnet = NeuralNetWithAdam(train_x, train_y,
+                                          hidden_layers=hl,
+                                          learning_rate=lr,
+                                          iteration_count=it,
+                                          lambd=0.4,
+                                          epochs=3,
+                                          shuffle=True,
+                                          minibatch_size=0)
+            analyser.submit(neuralnet, test_sets)
+
+analyser.start()
+analyser.print_summary()
+
+# with concurrent.futures.ProcessPoolExecutor() as executor:
+#     print("Starting with {0} max-workers...".format(executor._max_workers))
+
+#                 future_list.append(e)
+#     for future in concurrent.futures.as_completed(future_list):
+#         try:
+#             neuralnet = future.result()
+#         except Exception as exc:
+#             print(exc)
+#             future_list.remove(future)
+#         else:
+#             for i, v in test_sets.items():
+#                 predict(neuralnet, i, v)
+#                 # if (best_f1 <= report.totals[2]):
+#                 #     best_f1 = report.totals[2]
+#                 #     best_nns.append(result[0])
+#                 #     best_reports.append(report)
+#                 #     best_test_sets.append(i)
+
+#             future_list.remove(future)
+
+#             if (len(future_list) == 0):
+#                 analyser.to_csv('./analyse_results.csv')
+#                 print_result(analyser.prediction_log)
+
 
 # if len(future_list) == 0:
 

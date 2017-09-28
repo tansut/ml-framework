@@ -1,4 +1,4 @@
-from aibrite.ml.core import MlBase, PredictionResult, TrainResult, NeuralNetLayer, InputLayer, OutputLayer, HiddenLayer
+from aibrite.ml.core import MlBase, PredictionResult, TrainIteration, TrainResult, NeuralNetLayer, InputLayer, OutputLayer, HiddenLayer
 
 import numpy as np
 import time
@@ -46,7 +46,7 @@ class NeuralNet(MlBase):
             layer.Z = layer.W.dot(layer.prev_layer.A) + layer.b
             layer.A = layer.activation_fn(layer.Z)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
+    def _backward_for_layer(self, layer, Y, iteration_data):
         m = Y.shape[1]
 
         # compute dZ if this is not output layer
@@ -62,22 +62,23 @@ class NeuralNet(MlBase):
         layer.db = (1. / m) * np.sum(layer.dZ,
                                      axis=1, keepdims=True)
 
-    def _backward(self, Y, epoch, current_batch_index, total_batch_index):
+    def _backward(self, Y, iteration_data):
         self.output_layer.dZ = self.output_layer.A - Y
         for i, v in reversed(list(enumerate(self._hidden_layers + [self.output_layer]))):
             self._backward_for_layer(
-                v, Y, epoch, current_batch_index, total_batch_index)
+                v, Y, iteration_data)
 
-    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+    def _grad_layer(self, layer, Y, iteration_data):
+        # self.learning_rate / (1 + self.learning_rate_decay * epoch)
+        lr = iteration_data.calculated_learning_rate
 
         layer.W = layer.W - lr * layer.dW
         layer.b = layer.b - lr * layer.db
 
-    def _grads(self, Y, epoch, current_batch_index, total_batch_index):
+    def _grads(self, Y, iteration_data):
         for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             self._grad_layer(
-                layer, Y, epoch, current_batch_index, total_batch_index)
+                layer, Y, iteration_data)
 
     def initialize_layers(self):
         hiddens = self.hidden_layers
@@ -189,12 +190,13 @@ class NeuralNet(MlBase):
                 excerpt = slice(start_idx, start_idx + batchsize)
             yield inputs[:, excerpt], targets[:, excerpt]
 
-    def train(self, cb=None):
+    def train(self, call_back=None):
         self.train_result = TrainResult()
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
             minibatch_size = self.train_x.shape[1]
         total_batch_index = 0
+        total_iteration_count = 0
         for epoch in range(self.epochs):
             current_batch_index = 0
 
@@ -205,12 +207,15 @@ class NeuralNet(MlBase):
                 for i, v in enumerate(range(self.iteration_count)):
                     self._forward(self.layers)
                     cost = self.compute_cost(y_values_binary)
-                    cb(cost, epoch, current_batch_index,
-                       total_batch_index, i) if cb != None else None
-                    self._backward(y_values_binary, epoch,
-                                   current_batch_index, total_batch_index)
-                    self._grads(y_values_binary, epoch,
-                                current_batch_index, total_batch_index)
+                    calculated_learning_rate = self.learning_rate / \
+                        (1 + self.learning_rate_decay * epoch)
+                    iteration_data = TrainIteration(cost=cost, epoch=epoch, current_batch_index=current_batch_index,
+                                                    total_batch_index=total_batch_index, total_iteration_count=total_iteration_count, current_batch_iteration=i, calculated_learning_rate=calculated_learning_rate)
+                    call_back(
+                        self, iteration_data) if call_back != None else None
+                    self._backward(y_values_binary, iteration_data)
+                    self._grads(y_values_binary, iteration_data)
+                    total_iteration_count += 1
                 current_batch_index += 1
                 total_batch_index += 1
         return self.train_result.complete()

@@ -21,16 +21,15 @@ class NeuralNetWithMomentum(NeuralNet):
             layer.VdW = np.zeros(layer.W.shape)
             layer.Vdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_index, total_batch_index)
+    def _backward_for_layer(self, layer, Y, iteration_data):
+        super()._backward_for_layer(layer, Y, iteration_data)
         layer.VdW = self.beta * layer.VdW + \
             (1.0 - self.beta) * layer.dW
         layer.Vdb = self.beta * layer.Vdb + \
             (1.0 - self.beta) * layer.db
 
-    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+    def _grad_layer(self, layer, Y, iteration_data):
+        lr = iteration_data.calculated_learning_rate
 
         layer.W = layer.W - lr * layer.VdW
         layer.b = layer.b - lr * layer.Vdb

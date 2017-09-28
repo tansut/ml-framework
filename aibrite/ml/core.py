@@ -7,6 +7,10 @@ import datetime
 ScoreReport = namedtuple("ScoreReport", ["labels",
                                          "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
 
+TrainIteration = namedtuple(
+    'TrainIteration', ['cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_count', 'current_batch_iteration', 'calculated_learning_rate'])
+
+
 # TrainResult = namedtuple('TrainResult', ['started', 'completed'])
 
 

@@ -29,9 +29,8 @@ class NeuralNetWithAdam(NeuralNet):
             layer.SdW = np.zeros(layer.W.shape)
             layer.Sdb = np.zeros(layer.b.shape)
 
-    def _backward_for_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        super()._backward_for_layer(layer, Y, epoch,
-                                    current_batch_index, total_batch_index)
+    def _backward_for_layer(self, layer, Y, iteration_data):
+        super()._backward_for_layer(layer, Y, iteration_data)
         layer.VdW = self.beta1 * layer.VdW + \
             (1.0 - self.beta1) * layer.dW
         layer.Vdb = self.beta1 * layer.Vdb + \
@@ -41,15 +40,15 @@ class NeuralNetWithAdam(NeuralNet):
         layer.Sdb = self.beta2 * layer.Sdb + \
             (1.0 - self.beta2) * np.square(layer.db)
 
-        t = total_batch_index
+        t = iteration_data.total_batch_index
         layer.VdWCorrected = layer.VdW / (1 - self.beta1)**t
         layer.VdbCorrected = layer.Vdb / (1 - self.beta1)**t
 
         layer.SdWCorrected = layer.SdW / (1 - self.beta2)**t
         layer.SdbCorrected = layer.Sdb / (1 - self.beta2)**t
 
-    def _grad_layer(self, layer, Y, epoch, current_batch_index, total_batch_index):
-        lr = self.learning_rate / (1 + self.learning_rate_decay * epoch)
+    def _grad_layer(self, layer, Y, iteration_data):
+        lr = iteration_data.calculated_learning_rate
         layer.W = layer.W - lr * \
             (layer.VdWCorrected /
              (np.sqrt(layer.SdWCorrected) + self.epsilon))
