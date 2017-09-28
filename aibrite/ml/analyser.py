@@ -32,4 +32,4 @@ class Analyser:
 
         self.df = self.df.append(data, ignore_index=True)
 
-        return self.df
+        return pd.DataFrame().append(data, ignore_index=True)

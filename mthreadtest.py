@@ -13,8 +13,8 @@ from aibrite.ml.analyser import Analyser
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
-# df = df[df['quality'] != 8.0]
-# df = df[df['quality'] != 3.0]
+df = df[df['quality'] != 8.0]
+df = df[df['quality'] != 3.0]
 
 np.random.seed(5)
 data = df.values
@@ -29,8 +29,8 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [1000, 2000, 3000]
-learning_rates = [0.004, 0.008, 0.01]
+iterations = [2500]
+learning_rates = [0.003, 0.002, 0.001]
 hidden_layers = [(24, 36, 24, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
@@ -46,8 +46,11 @@ start_time = time.time()
 best_nns, best_reports, best_test_sets, best_f1 = [], [], [], -1
 
 
-def show_results():
-    pass
+def print_result(df):
+    df = df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
+        ['f1'], ascending=False)
+    with pd.option_context('expand_frame_repr', False):
+        print(df)
 
 
 def predict(neuralnet, test_id, test_set):
@@ -56,11 +59,11 @@ def predict(neuralnet, test_id, test_set):
     predicted = neuralnet.prediction_result.predicted
     hyper_parameters = neuralnet.get_hyperparameters()
 
-    analyser.add_data(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
-                      extra_data={
-                          'train_time': neuralnet.train_result.elapsed(),
-                          'pred_time': neuralnet.prediction_result.elapsed()
-                      })
+    data = analyser.add_data(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
+                             extra_data={
+                                 'train_time': neuralnet.train_result.elapsed(),
+                                 'pred_time': neuralnet.prediction_result.elapsed()
+                             })
 
 
 def train(neuralnet_class, train_x, train_y, **kvargs):
@@ -78,8 +81,8 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
                                     hidden_layers=hl,
                                     learning_rate=lr,
                                     iteration_count=it,
-                                    lambd=0.8,
-                                    epochs=5,
+                                    lambd=0.4,
+                                    epochs=3,
                                     shuffle=True,
                                     minibatch_size=0
                                     # labels=labels
@@ -104,9 +107,7 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
 
             if (len(future_list) == 0):
                 analyser.to_csv('./analyse_results.csv')
-                df = analyser.df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
-                    ['f1'], ascending=False)
-                print(df)
+                print_result(analyser.df)
 
             # if len(future_list) == 0:
 
