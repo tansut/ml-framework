@@ -3,6 +3,7 @@ from aibrite.ml.core import MlBase, PredictionResult, TrainResult, NeuralNetLaye
 import numpy as np
 import time
 import datetime
+import uuid
 
 
 class NeuralNet(MlBase):
@@ -163,7 +164,7 @@ class NeuralNet(MlBase):
                  epochs=1,
                  labels=None,
                  shuffle=False):
-
+        self.instance_id = str(uuid.uuid4())
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
         self.hidden_layers = hidden_layers if (

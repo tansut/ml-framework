@@ -8,16 +8,21 @@ from aibrite.ml.core import MlBase
 
 class Analyser:
     def __init__(self):
-        df = self.df = pd.DataFrame(columns=[
+        self.prediction_log = pd.DataFrame(columns=[
             'timestamp', 'classifier', 'test_set', 'f1', 'precision', 'recall', 'accuracy', 'support'])
 
-    def to_csv(self, file_name):
-        self.df.to_csv(file_name)
+        self.train_log = DataFrame(columns='timestamp', 'classifier', 'test_set', 'cost', 'epoch', 'current_minibatch_index'))
 
-    def add_data(self, classifier, test_set, expected, predicted, hyper_parameters, labels=None, extra_data=None):
-        score = MlBase.score_report(expected, predicted)
-        precision, recall, f1, support = score.totals
-        base_cols = {
+    def to_csv(self, file_name):
+        self.prediction_log.to_csv(file_name)
+
+    def add_to_train_log(self, classifier, instance_id, test_set, cost, epoch, current_minibatch_index, total_minibatch_index, extra_data = None, options = None):
+        pass
+
+    def add_to_prediction_log(self, classifier, instance_id, test_set, expected, predicted, hyper_parameters, labels = None, extra_data = None):
+        score=MlBase.score_report(expected, predicted)
+        precision, recall, f1, support=score.totals
+        base_cols={
             'timestamp': datetime.datetime.now(),
             'classifier': classifier,
             'test_set': test_set,
@@ -30,6 +35,7 @@ class Analyser:
 
         data = OrderedDict({**base_cols, **hyper_parameters, **extra_data})
 
-        self.df = self.df.append(data, ignore_index=True)
+        self.prediction_log = self.prediction_log.append(
+            data, ignore_index = True)
 
-        return self.df
+        return self.prediction_log

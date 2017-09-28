@@ -56,11 +56,11 @@ def predict(neuralnet, test_id, test_set):
     predicted = neuralnet.prediction_result.predicted
     hyper_parameters = neuralnet.get_hyperparameters()
 
-    analyser.add_data(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
-                      extra_data={
-                          'train_time': neuralnet.train_result.elapsed(),
-                          'pred_time': neuralnet.prediction_result.elapsed()
-                      })
+    analyser.add_to_prediction_log(neuralnet.__class__.__name__, test_id, expected, predicted, hyper_parameters,
+                                   extra_data={
+                                       'train_time': neuralnet.train_result.elapsed(),
+                                       'pred_time': neuralnet.prediction_result.elapsed()
+                                   })
 
 
 def train(neuralnet_class, train_x, train_y, **kvargs):
@@ -104,7 +104,7 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
 
             if (len(future_list) == 0):
                 analyser.to_csv('./analyse_results.csv')
-                df = analyser.df[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
+                df = analyser.prediction_log[['classifier', 'test_set', 'f1', 'iteration_count', 'hidden_layers', 'learning_rate']].sort_values(
                     ['f1'], ascending=False)
                 print(df)
 
