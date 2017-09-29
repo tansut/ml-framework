@@ -29,8 +29,8 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [2000]
-learning_rates = [0.005]
+iterations = [2500]
+learning_rates = [0.008]
 hidden_layers = [(24, 36, 24, 12, 6)]
 lambds = [0.0]
 test_sets = {'dev': (dev_x, dev_y),
@@ -58,7 +58,7 @@ for it in iterations:
                                 learning_rate=lr,
                                 iteration_count=it,
                                 lambd=lambd,
-                                epochs=3,
+                                epochs=5,
                                 shuffle=True,
                                 minibatch_size=0,
                                 labels=labels)
