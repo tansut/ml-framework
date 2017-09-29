@@ -11,7 +11,7 @@ from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
 from aibrite.ml.analyser import NeuralNetAnalyser
 
 
-df = pd.read_csv("./data/winequality-red.csv", sep=";")
+df = pd.read_csv("./data/ex2data1.csv", sep=",")
 
 # df = df[df['quality'] != 8.0]
 # df = df[df['quality'] != 3.0]
@@ -29,14 +29,14 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [2000]
-learning_rates = [0.005]
-hidden_layers = [(24, 36, 24, 12, 6)]
-lambds = [0.0]
+iterations = [200]
+learning_rates = [0.02]
+hidden_layers = [(4, 6, 12)]
+lambds = [0.8]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
-test_sets = {'train': (train_x, train_y)}
+# test_sets = {'train': (train_x, train_y)}
 # test_sets = {'test': (test_x, test_y)}
 
 
@@ -60,8 +60,7 @@ for it in iterations:
                                 lambd=lambd,
                                 epochs=3,
                                 shuffle=True,
-                                minibatch_size=0,
-                                labels=labels)
+                                minibatch_size=0)
 
 analyser.join()
 analyser.print_summary()

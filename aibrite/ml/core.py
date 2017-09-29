@@ -130,8 +130,6 @@ class MlBase:
         pass
 
     def confusion_matrix(expect, pred, labels=None):
-        # expect = np.asarray(expect)
-        # pred = np.asarray(pred)
         if labels is None:
             labels = np.union1d(expect, pred)
 
@@ -160,7 +158,8 @@ class MlBase:
     def calc_f1(cm):
         p = np.asarray(MlBase.calc_precision(cm))
         r = np.asarray(MlBase.calc_recall(cm))
-        return np.nan_to_num(2 * (r * p) / (r + p))
+        with np.errstate(invalid='ignore'):
+            return np.nan_to_num(2 * (r * p) / (r + p))
 
     def calc_support(cm):
         c = np.sum(cm, axis=1)
