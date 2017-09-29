@@ -83,7 +83,7 @@ class AnalyserJob:
         base_cols = {
             'timestamp': now,
             'classifier': neuralnet.__class__.__name__,
-            'classifier_id': neuralnet.instance_id,
+            # 'classifier_id': neuralnet.instance_id,
             'test_set': test_set_id,
             'precision': precision,
             'recall': recall,
@@ -113,10 +113,10 @@ class NeuralNetAnalyser:
 
     def _init_logs(self):
         self.prediction_log = pd.DataFrame(columns=[
-            'timestamp', 'classifier', 'classifier_id', 'test_set', 'label', 'f1', 'precision', 'recall', 'accuracy', 'support'])
+            'timestamp', 'classifier', 'test_set', 'label', 'f1', 'precision', 'recall', 'accuracy', 'support'])
 
         self.train_log = pd.DataFrame(columns=[
-            'timestamp', 'classifier', 'classifier_id', 'cost', 'epoch', 'current_minibatch_index'])
+            'timestamp', 'classifier', 'cost', 'epoch'])
 
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -129,14 +129,16 @@ class NeuralNetAnalyser:
             self.train_log = self.train_log.append(
                 item, ignore_index=True)
 
-    def __init__(self, log_dir='./', max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
-        self.executor = executor(max_workers=None)
+    def __init__(self, log_dir='./', use_subdir=True, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+        self.executor = executor(max_workers=max_workers)
         self.worker_list = []
         self.job_list = {}
 
         self.log_dir = log_dir if log_dir != None else './'
-        self.log_dir = os.path.join(
-            self.log_dir, datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f'))
+        self.use_subdir = use_subdir
+        if self.use_subdir:
+            self.log_dir = os.path.join(
+                self.log_dir, datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f'))
         self._init_logs()
         self.train_options = train_options if train_options != None else {
             'foo': 12
@@ -179,8 +181,8 @@ class NeuralNetAnalyser:
             NeuralNetAnalyser._start_job, self.id, neuralnet_class, train_set, test_sets, **kvargs)
         self.worker_list.append(item)
 
-    def start(self):
-        self.start_time = time.time()
+    def join(self):
+        self.start_time = datetime.datetime.now()
         for future in self._as_completed():
             try:
                 job_result = future.result()
@@ -196,6 +198,7 @@ class NeuralNetAnalyser:
                     self.job_completed(self, job_result)
                 self.job_results.append(job_result)
                 self.save_logs()
+        self.finish_time = datetime.datetime.now()
 
     def _as_completed(self):
         return concurrent.futures.as_completed(self.worker_list)
@@ -206,9 +209,14 @@ class NeuralNetAnalyser:
 
         print("\n", "*" * 32)
         print("{:^32}".format("PREDICTION SUMMARY"))
-        print("*" * 32, "\n")
+        print("*" * 32, "\n\n")
 
-        # print("Train/prediction times")
+        total_train_time = sum(r.train_time for r in self.job_results)
+        total_prediction_time = sum(
+            r.prediction_time for r in self.job_results)
+
+        print("Total train/prediction seconds: {0:.2f}/{1:.2f}\n".format(
+            total_train_time, total_prediction_time))
 
         # print("Predictions:")
 
@@ -218,3 +226,7 @@ class NeuralNetAnalyser:
             #     print("{0} {1}".format(result.classifier, result.train_time))
             print(
                 pred_totals[['test_set', 'f1', 'precision', 'recall', 'support', 'prediction_time', 'train_time']])
+
+        elapsed = (self.finish_time - self.start_time).total_seconds()
+        print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
+                                                                              self.executor._max_workers))

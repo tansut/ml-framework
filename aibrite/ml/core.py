@@ -24,7 +24,7 @@ class TrainResult:
         return self
 
     def elapsed(self):
-        return (self.completed - self.started).total_seconds() * 1000
+        return (self.completed - self.started).total_seconds()
 
 
 class PredictionResult:
@@ -39,7 +39,7 @@ class PredictionResult:
         return self
 
     def elapsed(self):
-        return (self.completed - self.started).total_seconds() * 1000
+        return (self.completed - self.started).total_seconds()
 
 
 class NeuralNetLayer:

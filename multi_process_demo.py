@@ -29,8 +29,8 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [30, 50]
-learning_rates = [0.03]
+iterations = [300]
+learning_rates = [0.003]
 hidden_layers = [(4, 6, 4, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
@@ -42,7 +42,8 @@ def jb(analyser, results):
     pass
 
 
-analyser = NeuralNetAnalyser(log_dir='./analyserlogs', job_completed=jb)
+analyser = NeuralNetAnalyser(
+    log_dir='./analyserlogs/log', use_subdir=False,  job_completed=jb)
 
 train_set = (train_x, train_y)
 
@@ -52,12 +53,13 @@ for it in iterations:
             analyser.submit(NeuralNetWithAdam, train_set, test_sets,
                             hidden_layers=hl,
                             learning_rate=lr,
+                            learning_rate_decay=0.1,
                             iteration_count=it,
                             lambd=0.4,
-                            epochs=3,
+                            epochs=1,
                             shuffle=True,
-                            minibatch_size=0)
+                            minibatch_size=5)
             analyser.foo = "tansu"
 
-analyser.start()
+analyser.join()
 analyser.print_summary()
