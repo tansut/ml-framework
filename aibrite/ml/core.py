@@ -18,6 +18,7 @@ class TrainResult:
     def __init__(self):
         self.started = datetime.datetime.now()
         self.completed = None
+        self.min_cost = None
 
     def complete(self):
         self.completed = datetime.datetime.now()
@@ -32,10 +33,11 @@ class PredictionResult:
         self.started = datetime.datetime.now()
         self.completed = None
 
-    def complete(self, predicted, probabilities):
+    def complete(self, predicted, probabilities, score):
         self.completed = datetime.datetime.now()
         self.predicted = predicted
         self.probabilities = probabilities
+        self.score = score
         return self
 
     def elapsed(self):
@@ -129,7 +131,7 @@ class MlBase:
     def confusion_matrix(expect, pred, labels=None):
         # expect = np.asarray(expect)
         # pred = np.asarray(pred)
-        if (not type(labels) is np.ndarray and labels == None):
+        if labels is None:
             labels = np.union1d(expect, pred)
 
         m = [[0] * len(labels) for l in labels]
@@ -188,7 +190,8 @@ class MlBase:
         content = ""
         for i, v in enumerate(report.precision):
             content += "{label:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}\n".format(label=report.labels[i],
-                                                                                                    precision=report.precision[i],
+                                                                                                    precision=report.precision[
+                                                                                                        i],
                                                                                                     recall=report.recall[i],
                                                                                                     f1=report.f1[i],
                                                                                                     support=report.support[i])

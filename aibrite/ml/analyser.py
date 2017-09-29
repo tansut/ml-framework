@@ -1,13 +1,16 @@
 import concurrent.futures
-import time
-from aibrite.ml.core import TrainResult, MlBase, PredictionResult, TrainIteration
-from aibrite.ml.neuralnet import NeuralNet
-import uuid
-import pandas as pd
-import os
 import datetime
-from threading import Lock
+import os
+import time
+import uuid
 from collections import namedtuple
+from threading import Lock
+
+import pandas as pd
+
+from aibrite.ml.core import (MlBase, PredictionResult, TrainIteration,
+                             TrainResult)
+from aibrite.ml.neuralnet import NeuralNet
 
 analyser_cache = {}
 
@@ -17,7 +20,7 @@ JobResult = namedtuple(
 
 class AnalyserJob:
 
-    def __init__(self, classifier, hyper_parameters):
+    def __init__(self, analyser, neuralnet):
         self.id = str(uuid.uuid4())
         self.status = 'created'
         self._predlock = Lock()
@@ -26,8 +29,8 @@ class AnalyserJob:
         self._train_data = []
         self.train_time = 0
         self.prediction_time = 0
-        self.classifier = classifier
-        self.hyper_parameters = hyper_parameters
+        self.analyser = analyser
+        self.neuralnet = neuralnet
 
     def get_result(self):
         return JobResult(train_data=self._train_data,
@@ -35,19 +38,19 @@ class AnalyserJob:
                          id=self.id,
                          train_time=self.train_time,
                          prediction_time=self.prediction_time,
-                         classifier=self.classifier,
-                         hyper_parameters=self.hyper_parameters)
+                         classifier=self.neuralnet.__class__.__name__,
+                         hyper_parameters=self.neuralnet.get_hyperparameters())
 
-    def add_to_train_log(self, neuralnet, train_data, extra_data=None):
+    def add_to_train_log(self, train_data, extra_data=None):
         extra_data = extra_data if extra_data != None else {}
-        hyper_parameters = neuralnet.get_hyperparameters()
+        hyper_parameters = self.neuralnet.get_hyperparameters()
         now = datetime.datetime.now()
 
         base_cols = {
             'timestamp': now,
-            'classifier': neuralnet.__class__.__name__,
-            # 'classifier_id': neuralnet.instance_id,
-            'job_id': self.id
+            'classifier': self.neuralnet.__class__.__name__,
+            'job_id': self.id,
+            'session_id': self.analyser.id
         }
 
         data = {**base_cols, **train_data, **hyper_parameters, **extra_data}
@@ -55,17 +58,17 @@ class AnalyserJob:
             self._train_data.append(data)
         return data
 
-    def add_to_prediction_log(self, neuralnet, test_set_id, score, elapsed, extra_data=None):
+    def add_to_prediction_log(self, test_set_id, prediction_result, extra_data=None):
         extra_data = extra_data if extra_data != None else {}
+        score = prediction_result.score
         precision, recall, f1, support = score.totals
-        hyper_parameters = neuralnet.get_hyperparameters()
+        hyper_parameters = self.neuralnet.get_hyperparameters()
         now = datetime.datetime.now()
 
         for i, v in enumerate(score.labels):
             base_cols = {
                 'timestamp': now,
-                'classifier': neuralnet.__class__.__name__,
-                # 'classifier_id': neuralnet.instance_id,
+                'classifier': self.neuralnet.__class__.__name__,
                 'test_set': test_set_id,
                 'precision': score.precision[i],
                 'recall': score.recall[i],
@@ -74,16 +77,16 @@ class AnalyserJob:
                 'label': score.labels[i],
                 'support': score.support[i],
                 'job_id': self.id,
-                'prediction_time': elapsed,
-                'train_time': self.train_time
+                'prediction_time': prediction_result.elapsed(),
+                'train_time': self.train_time,
+                'session_id': self.analyser.id
             }
 
             data = {**base_cols, **hyper_parameters, **extra_data}
 
         base_cols = {
             'timestamp': now,
-            'classifier': neuralnet.__class__.__name__,
-            # 'classifier_id': neuralnet.instance_id,
+            'classifier': self.neuralnet.__class__.__name__,
             'test_set': test_set_id,
             'precision': precision,
             'recall': recall,
@@ -92,8 +95,9 @@ class AnalyserJob:
             'support': support,
             'label': '__totals__',
             'job_id': self.id,
-            'prediction_time': elapsed,
-            'train_time': self.train_time
+            'prediction_time': prediction_result.elapsed(),
+            'train_time': self.train_time,
+            'session_id': self.analyser.id
         }
 
         data = {**base_cols, **hyper_parameters, **extra_data}
@@ -153,25 +157,20 @@ class NeuralNetAnalyser:
         train_x, train_y = train_set
         neuralnet = neuralnet_class(train_x, train_y, **kvargs)
 
-        job = AnalyserJob(neuralnet_class.__name__,
-                          neuralnet.get_hyperparameters())
+        job = AnalyserJob(analyser, neuralnet)
         analyser.job_list[job.id] = job
 
         job.status = 'training:started'
-        neuralnet.train(lambda neuralnet, train_data: job.add_to_train_log(
-            neuralnet, train_data._asdict()))
+        neuralnet.train(lambda neuralnet,
+                        train_data: job.add_to_train_log(train_data._asdict()))
         job.train_time = neuralnet.train_result.elapsed()
         job.status = 'prediction:started'
         for test_set_id, test_set in test_sets.items():
             test_set_x, test_set_y = test_set
-            prediction_result = neuralnet.predict(test_set_x)
-            elapsed = prediction_result.elapsed()
-            job.prediction_time += elapsed
-            score = NeuralNet.score_report(
-                test_set_y, prediction_result.predicted, labels=neuralnet.labels)
-            job.add_to_prediction_log(neuralnet, test_set_id, score, elapsed)
-            # print("{0}:\n{1}\n".format(
-            #     job.neuralnet, NeuralNet.format_score_report(score)))
+            prediction_result = neuralnet.predict(
+                test_set_x, expected=test_set_y)
+            job.prediction_time += prediction_result.elapsed()
+            job.add_to_prediction_log(test_set_id, prediction_result)
 
         job.status = 'completed'
         return job.get_result()
@@ -189,7 +188,7 @@ class NeuralNetAnalyser:
             except Exception as exc:
                 print("ERROR")
                 print(exc)
-                # raise exc
+                raise exc
                 self.worker_list.remove(future)
             else:
                 self._append_job_data(

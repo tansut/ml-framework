@@ -220,7 +220,7 @@ class NeuralNet(MlBase):
                 total_batch_index += 1
         return self.train_result.complete()
 
-    def predict(self, X):
+    def predict(self, X, expected=None):
         self.prediction_result = PredictionResult()
         self.input_layer.pA = np.asarray(X).T
 
@@ -232,4 +232,8 @@ class NeuralNet(MlBase):
         maxindexes = np.argmax(A, axis=0)
         pred = [self.labels[maxindexes[i]]
                 for i, v in enumerate(maxindexes)]
-        return self.prediction_result.complete(pred, A)
+        if expected is None:
+            score = None
+        else:
+            score = NeuralNet.score_report(expected, pred, labels=self.labels)
+        return self.prediction_result.complete(pred, A, score)
