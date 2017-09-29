@@ -5,6 +5,7 @@ import time
 import uuid
 from collections import namedtuple
 from threading import Lock
+import re
 
 import pandas as pd
 
@@ -20,7 +21,7 @@ JobResult = namedtuple(
 
 class AnalyserJob:
 
-    def __init__(self, analyser, neuralnet):
+    def __init__(self, analyser, neuralnet, test_sets):
         self.id = str(uuid.uuid4())
         self.status = 'created'
         self._predlock = Lock()
@@ -31,6 +32,7 @@ class AnalyserJob:
         self.prediction_time = 0
         self.analyser = analyser
         self.neuralnet = neuralnet
+        self.test_sets = test_sets
 
     def get_result(self):
         return JobResult(train_data=self._train_data,
@@ -41,19 +43,31 @@ class AnalyserJob:
                          classifier=self.neuralnet.__class__.__name__,
                          hyper_parameters=self.neuralnet.get_hyperparameters())
 
-    def add_to_train_log(self, train_data, extra_data=None):
+    def add_to_train_log(self, train_data, prediction=None, extra_data=None):
         extra_data = extra_data if extra_data != None else {}
         hyper_parameters = self.neuralnet.get_hyperparameters()
         now = datetime.datetime.now()
-
+        if prediction is None:
+            prediction_data = {}
+        else:
+            test_set_id, prediction_result = prediction
+            precision, recall, f1, support = prediction_result.score.totals
+            prediction_data = {
+                'test_set': test_set_id,
+                'precision': precision,
+                'recall': recall,
+                'accuracy': prediction_result.score.accuracy,
+                'f1': f1,
+                'support': support,
+            }
         base_cols = {
             'timestamp': now,
             'classifier': self.neuralnet.__class__.__name__,
             'job_id': self.id,
-            'session_id': self.analyser.id
+            'session_name': self.analyser.session_name
         }
 
-        data = {**base_cols, **train_data, **hyper_parameters, **extra_data}
+        data = {**base_cols, **train_data, **hyper_parameters, **prediction_data, **extra_data}
         with self._trainlock:
             self._train_data.append(data)
         return data
@@ -64,7 +78,7 @@ class AnalyserJob:
         precision, recall, f1, support = score.totals
         hyper_parameters = self.neuralnet.get_hyperparameters()
         now = datetime.datetime.now()
-
+        rows_to_add = []
         for i, v in enumerate(score.labels):
             base_cols = {
                 'timestamp': now,
@@ -79,10 +93,11 @@ class AnalyserJob:
                 'job_id': self.id,
                 'prediction_time': prediction_result.elapsed(),
                 'train_time': self.train_time,
-                'session_id': self.analyser.id
+                'session_name': self.analyser.session_name
             }
 
             data = {**base_cols, **hyper_parameters, **extra_data}
+            rows_to_add.append(data)
 
         base_cols = {
             'timestamp': now,
@@ -97,33 +112,57 @@ class AnalyserJob:
             'job_id': self.id,
             'prediction_time': prediction_result.elapsed(),
             'train_time': self.train_time,
-            'session_id': self.analyser.id
+            'session_name': self.analyser.session_name
         }
 
         data = {**base_cols, **hyper_parameters, **extra_data}
+        rows_to_add.append(data)
+
         with self._predlock:
-            self._prediction_data.append(data)
+            for row in rows_to_add:
+                self._prediction_data.append(row)
         return data
 
 
 class NeuralNetAnalyser:
 
-    def save_logs(self):
-        pred_file = os.path.join(self.log_dir, 'pred.csv')
-        train_file = os.path.join(self.log_dir, 'train.csv')
+    #    def add_to_session_log(self, extra_data=None):
+    #         extra_data = extra_data if extra_data != None else {}
+    #         now = datetime.datetime.now()
+    #         base_cols = {
+    #             'timestamp': now,
+    #             'session_name': self.session_name
+    #         }
+    #         data = {**base_cols, **extra_data}
+    #         with self._session_file_lock:
+    #             self._session_data.append(data)
+    #         return data
 
-        self.prediction_log.to_csv(pred_file)
-        self.train_log.to_csv(train_file)
+    def save_logs(self):
+        self.prediction_log.to_csv(self.pred_file, index=False)
+        self.train_log.to_csv(self.train_file, index=False)
+        self.session_log.to_csv(self.session_file, index=False)
 
     def _init_logs(self):
-        self.prediction_log = pd.DataFrame(columns=[
-            'timestamp', 'classifier', 'test_set', 'label', 'f1', 'precision', 'recall', 'accuracy', 'support'])
 
-        self.train_log = pd.DataFrame(columns=[
-            'timestamp', 'classifier', 'cost', 'epoch'])
+        if not os.path.exists(self.db_dir):
+            os.makedirs(self.db_dir)
 
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+        if os.path.exists(self.pred_file):
+            self.prediction_log = pd.read_csv(self.pred_file)
+        else:
+            self.prediction_log = pd.DataFrame(columns=[
+                'session_name', 'classifier', 'test_set', 'label', 'f1', 'precision', 'recall', 'accuracy', 'support'])
+
+        if os.path.exists(self.train_file):
+            self.train_log = pd.read_csv(self.train_file)
+        else:
+            self.train_log = pd.DataFrame(columns=[
+                'session_name', 'classifier', 'cost'])
+        if os.path.exists(self.session_file):
+            self.session_log = pd.read_csv(self.session_file)
+        else:
+            self.session_log = pd.DataFrame()
 
     def _append_job_data(self, train_data, prediction_data):
         for item in prediction_data:
@@ -133,36 +172,64 @@ class NeuralNetAnalyser:
             self.train_log = self.train_log.append(
                 item, ignore_index=True)
 
-    def __init__(self, log_dir='./', use_subdir=True, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+    def generate_file_name(self, s):
+        s = str(s).strip().replace(' ', '_')
+        return re.sub(r'(?u)[^-\w.]', '', s)
+
+    def __init__(self, name, base_dir='./', session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+        self.name = name
         self.executor = executor(max_workers=max_workers)
         self.worker_list = []
         self.job_list = {}
 
-        self.log_dir = log_dir if log_dir != None else './'
-        self.use_subdir = use_subdir
-        if self.use_subdir:
-            self.log_dir = os.path.join(
-                self.log_dir, datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f'))
+        self.base_dir = base_dir if base_dir != None else './'
+        self.db_dir = os.path.join(
+            self.base_dir, self.generate_file_name(name))
+
+        self.pred_file = os.path.join(self.db_dir, 'pred.csv')
+        self.train_file = os.path.join(self.db_dir, 'train.csv')
+        self.session_file = os.path.join(self.db_dir, 'session.csv')
+
+        self._session_data = []
+        self._session_file_lock = Lock()
+        # self.use_subdir = use_subdir
+        # if self.use_subdir:
+        #     self.base_dir = os.path.join(
+        # self.base_dir,
+        # datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f'))
         self._init_logs()
         self.train_options = train_options if train_options != None else {
             'foo': 12
         }
         self.job_completed = job_completed
-        self.id = str(uuid.uuid4())
-        analyser_cache[self.id] = self
+        if session_name is None:
+            self.session_name = "Session {0:0>4}".format(
+                len(self.session_log) + 1)
+        else:
+            self.session_name = session_name
+        analyser_cache[self.session_name] = self
         self.job_results = []
+
+    def _train_callback(self, job, neuralnet, train_iteration):
+        test_sets = job.test_sets
+        for test_set_id, test_set in test_sets.items():
+            test_set_x, test_set_y = test_set
+            prediction_result = neuralnet.predict(
+                test_set_x, expected=test_set_y)
+            job.add_to_train_log(train_iteration._asdict(),
+                                 prediction=(test_set_id, prediction_result))
 
     def _start_job(analyser_id, neuralnet_class, train_set, test_sets, **kvargs):
         analyser = analyser_cache[analyser_id]
         train_x, train_y = train_set
         neuralnet = neuralnet_class(train_x, train_y, **kvargs)
 
-        job = AnalyserJob(analyser, neuralnet)
+        job = AnalyserJob(analyser, neuralnet, test_sets)
         analyser.job_list[job.id] = job
 
         job.status = 'training:started'
-        neuralnet.train(lambda neuralnet,
-                        train_data: job.add_to_train_log(train_data._asdict()))
+        neuralnet.train(lambda neuralnet, train_iteration: analyser._train_callback(
+            job, neuralnet, train_iteration))
         job.train_time = neuralnet.train_result.elapsed()
         job.status = 'prediction:started'
         for test_set_id, test_set in test_sets.items():
@@ -177,8 +244,27 @@ class NeuralNetAnalyser:
 
     def submit(self, neuralnet_class, train_set, test_sets, **kvargs):
         item = self.executor.submit(
-            NeuralNetAnalyser._start_job, self.id, neuralnet_class, train_set, test_sets, **kvargs)
+            NeuralNetAnalyser._start_job, self.session_name, neuralnet_class, train_set, test_sets, **kvargs)
         self.worker_list.append(item)
+
+    def _complete_session(self):
+        now = datetime.datetime.now()
+        self.session_log = self.session_log.append({
+            'timestamp': now,
+            'session_name': self.session_name
+
+        }, ignore_index=True)
+        print(self.session_log.columns)
+
+        self.save_logs()
+
+    def _complete_job(self, job_result):
+        self._append_job_data(
+            job_result.train_data, job_result.prediction_data)
+        if self.job_completed != None:
+            self.job_completed(self, job_result)
+        self.job_results.append(job_result)
+        self.save_logs()
 
     def join(self):
         self.start_time = datetime.datetime.now()
@@ -191,12 +277,10 @@ class NeuralNetAnalyser:
                 raise exc
                 self.worker_list.remove(future)
             else:
-                self._append_job_data(
-                    job_result.train_data, job_result.prediction_data)
-                if self.job_completed != None:
-                    self.job_completed(self, job_result)
-                self.job_results.append(job_result)
-                self.save_logs()
+                self.worker_list.remove(future)
+                self._complete_job(job_result)
+                if len(self.worker_list) <= 0:
+                    self._complete_session()
         self.finish_time = datetime.datetime.now()
 
     def _as_completed(self):

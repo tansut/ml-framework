@@ -191,12 +191,12 @@ class NeuralNet(MlBase):
             yield inputs[:, excerpt], targets[:, excerpt]
 
     def train(self, call_back=None):
-        self.train_result = TrainResult()
+        train_result = self.train_result = TrainResult()
         minibatch_size = self.minibatch_size
         if minibatch_size <= 0:
             minibatch_size = self.train_x.shape[1]
         total_batch_index = 0
-        total_iteration_count = 0
+        total_iteration_index = 0
         for epoch in range(self.epochs):
             current_batch_index = 0
 
@@ -204,18 +204,25 @@ class NeuralNet(MlBase):
                 x_batch, y_batch = batch
                 y_values_binary = self.y_to_binary(y_batch)
                 self.input_layer.A = x_batch
-                for i, v in enumerate(range(self.iteration_count)):
+                for i in range(self.iteration_count):
                     self._forward(self.layers)
                     cost = self.compute_cost(y_values_binary)
+
+                    if train_result.min_cost is None:
+                        train_result.min_cost = cost
+                    if train_result.max_cost is None:
+                        train_result.max_cost = cost
+                    train_result.min_cost = min(train_result.min_cost, cost)
+                    train_result.max_cost = max(train_result.max_cost, cost)
                     calculated_learning_rate = self.learning_rate / \
                         (1 + self.learning_rate_decay * epoch)
                     iteration_data = TrainIteration(cost=cost, epoch=epoch, current_batch_index=current_batch_index,
-                                                    total_batch_index=total_batch_index, total_iteration_count=total_iteration_count, current_batch_iteration=i, calculated_learning_rate=calculated_learning_rate)
+                                                    total_batch_index=total_batch_index, total_iteration_index=total_iteration_index, current_batch_iteration_index=i, calculated_learning_rate=calculated_learning_rate)
                     call_back(
                         self, iteration_data) if call_back != None else None
                     self._backward(y_values_binary, iteration_data)
                     self._grads(y_values_binary, iteration_data)
-                    total_iteration_count += 1
+                    total_iteration_index += 1
                 current_batch_index += 1
                 total_batch_index += 1
         return self.train_result.complete()

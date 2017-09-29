@@ -29,21 +29,21 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [300]
-learning_rates = [0.003]
-hidden_layers = [(4, 6, 4, 12, 6)]
+iterations = [50]
+learning_rates = [0.001, 0.002, 0.005]
+hidden_layers = [(4, 2), (2,), (6,), (4, 6, 4, 12, 6)]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
-# test_sets = {'train': (train_x, train_y)}
+test_sets = {'train': (train_x, train_y)}
 
 
 def jb(analyser, results):
     pass
 
 
-analyser = NeuralNetAnalyser(
-    log_dir='./analyserlogs/log', use_subdir=False,  job_completed=jb)
+analyser = NeuralNetAnalyser("Coursera Ex2 Analysis",
+                             base_dir='./analyserlogs',  job_completed=jb)
 
 train_set = (train_x, train_y)
 
@@ -58,7 +58,7 @@ for it in iterations:
                             lambd=0.4,
                             epochs=1,
                             shuffle=True,
-                            minibatch_size=5)
+                            minibatch_size=0)
             analyser.foo = "tansu"
 
 analyser.join()

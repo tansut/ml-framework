@@ -8,7 +8,7 @@ ScoreReport = namedtuple("ScoreReport", ["labels",
                                          "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
 
 TrainIteration = namedtuple(
-    'TrainIteration', ['cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_count', 'current_batch_iteration', 'calculated_learning_rate'])
+    'TrainIteration', ['cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_index', 'current_batch_iteration_index', 'calculated_learning_rate'])
 
 
 # TrainResult = namedtuple('TrainResult', ['started', 'completed'])
@@ -19,6 +19,7 @@ class TrainResult:
         self.started = datetime.datetime.now()
         self.completed = None
         self.min_cost = None
+        self.max_cost = None
 
     def complete(self):
         self.completed = datetime.datetime.now()
