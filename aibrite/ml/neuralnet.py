@@ -32,10 +32,10 @@ class NeuralNet(MlBase):
         A = self.output_layer.A
         m = Y.shape[1]
         try:
-            logprobs = np.multiply(np.log(A), Y)
+            logprobs = np.multiply(-np.log(A), Y)
         except Exception as exc:
             print(exc, A)
-        losses = -np.sum(logprobs, axis=0)
+        losses = np.sum(logprobs, axis=0)
         cost = (1. / m) * np.sum(losses)
         return cost + (self.lambd / 2.) * self.l2_regularization_cost(m)
 
@@ -69,7 +69,6 @@ class NeuralNet(MlBase):
                 v, Y, iteration_data)
 
     def _grad_layer(self, layer, Y, iteration_data):
-        # self.learning_rate / (1 + self.learning_rate_decay * epoch)
         lr = iteration_data.calculated_learning_rate
 
         layer.W = layer.W - lr * layer.dW

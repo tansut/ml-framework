@@ -27,6 +27,9 @@ class AnalyserLoggerBase:
     def get_session_count():
         pass
 
+    def add_to_classifier_instances(self, neuralnet):
+        pass
+
 
 class MongodbLogger(AnalyserLoggerBase):
     def __init__(self, conn_str):
@@ -38,6 +41,9 @@ class CsvLogger(AnalyserLoggerBase):
 
     def get_session_count(self):
         return len(self.session_log)
+
+    def add_to_classifier_instances(self, neuralnet):
+        pass
 
     def done(self):
         for item in self._prediction_data:

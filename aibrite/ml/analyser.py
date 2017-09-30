@@ -53,8 +53,9 @@ class NeuralNetAnalyser:
         self.worker_list = []
 
         if logger is None:
-            log_dir = os.path.join('./', CsvLogger.generate_file_name(name))
-            logger = CsvLogger(self, base_dir=log_dir)
+            log_dir = os.path.join(
+                './analyserlogs', CsvLogger.generate_file_name(name))
+            logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
 
         self.logger = logger
 
@@ -87,6 +88,7 @@ class NeuralNetAnalyser:
         analyser = analyser_cache[analyser_id]
         train_x, train_y = train_set
         neuralnet = neuralnet_class(train_x, train_y, **kvargs)
+        self.logger.add_to_classifier_instances(neuralnet)
 
         job = AnalyserJob(job_id, analyser, neuralnet, test_sets)
 
