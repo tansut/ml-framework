@@ -67,7 +67,8 @@ class AnalyserJob:
             'session_name': self.analyser.session_name
         }
 
-        data = {**base_cols, **train_data, **hyper_parameters, **prediction_data, **extra_data}
+        data = {**base_cols, **train_data, **
+                hyper_parameters, **prediction_data, **extra_data}
         with self._trainlock:
             self._train_data.append(data)
         return data
@@ -176,7 +177,7 @@ class NeuralNetAnalyser:
         s = str(s).strip().replace(' ', '_')
         return re.sub(r'(?u)[^-\w.]', '', s)
 
-    def __init__(self, name, base_dir='./', overwrite=False, session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, name, base_dir='./', overwrite=False, session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
         self.name = name
         self.executor = executor(max_workers=max_workers)
         self.worker_list = []

@@ -29,9 +29,9 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-iterations = [2500]
+iterations = [2750]
 learning_rates = [0.008]
-hidden_layers = [(24, 36, 24, 12, 6)]
+hidden_layers = [(24, 36, 24, 36, 12, 24)]
 lambds = [0.0]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),

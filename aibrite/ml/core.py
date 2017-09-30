@@ -93,10 +93,10 @@ class MlBase:
     def hyperbolic_tangent(z):
         return np.tanh(z)
 
-    def relu(data, epsilon=0.1):
+    def relu(data, epsilon=0.0):
         return np.maximum(epsilon * data, data)
 
-    def relu_d(data, epsilon=0.1):
+    def relu_d(data, epsilon=0.0):
         gradients = 1. * (data > 0)
         gradients[gradients == 0] = epsilon
         return gradients
