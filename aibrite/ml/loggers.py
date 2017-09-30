@@ -21,7 +21,7 @@ class AnalyserLoggerBase:
     def add_to_prediction_log(self, neuralnet, test_set_id, prediction_result, extra_data=None):
         pass
 
-    def add_to_session_log(self):
+    def update_session(self):
         pass
 
     def get_session_count():
@@ -30,11 +30,29 @@ class AnalyserLoggerBase:
     def add_to_classifier_instances(self, neuralnet):
         pass
 
+    def create_session():
+        pass
+
 
 class MongodbLogger(AnalyserLoggerBase):
     def __init__(self, conn_str):
         super().__init__()
         self.conn_str = conn_str
+
+    def create_session():
+        analyser = self.analyser
+        data = {
+            'session_name': analyser.session_name,
+            'group_name': analyser.group,
+            'timestamp': datetime.datetime.now(),
+            'status': 'created'
+        }
+
+    def add_to_classifier_instances(self, neuralnet):
+        # data = {
+        #     ''
+        # }
+        pass
 
 
 class CsvLogger(AnalyserLoggerBase):

@@ -47,19 +47,18 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, name, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
-        self.name = name
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
+        group = group if group is not None else ''
+        self.group = group
         self.executor = executor(max_workers=max_workers)
         self.worker_list = []
 
         if logger is None:
             log_dir = os.path.join(
-                './analyserlogs', CsvLogger.generate_file_name(name))
+                './analyserlogs', CsvLogger.generate_file_name(group))
             logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
 
         self.logger = logger
-
-        self.logger.init()
 
         self.train_options = train_options if train_options != None else {
             'foo': 12
@@ -74,6 +73,9 @@ class NeuralNetAnalyser:
         analyser_cache[self.session_name] = self
         self.job_results = []
         self.job_counter = 1
+
+        self.logger.init()
+        self.logger.create_session()
 
     def _train_callback(self, job, neuralnet, train_iteration):
         test_sets = job.test_sets
@@ -118,7 +120,9 @@ class NeuralNetAnalyser:
         self.worker_list.append(item)
 
     def _complete_session(self):
-        self.logger.add_to_session_log()
+        self.logger.update_session({
+            'status': 'completed'
+        })
         self.logger.done()
 
     def _complete_job(self, job_result):
