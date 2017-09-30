@@ -22,7 +22,7 @@ class AnalyserLoggerBase:
     def add_to_prediction_log(self, neuralnet, test_set_id, prediction_result, extra_data=None):
         pass
 
-    def update_session(self):
+    def update_session(self, values):
         pass
 
     def get_session_count(self):
@@ -132,12 +132,13 @@ class CsvLogger(AnalyserLoggerBase):
         s = str(s).strip().replace(' ', '_')
         return re.sub(r'(?u)[^-\w.]', '', s)
 
-    def add_to_session_log(self, extra_data=None):
-        extra_data = extra_data if extra_data != None else {}
+    def create_session(self):
+        extra_data = {}
         now = datetime.datetime.now()
         base_cols = {
             'timestamp': now,
-            'session_name': self.analyser.session_name
+            'session_name': self.analyser.session_name,
+            'group_name': self.analyser.group
         }
         data = {**base_cols, **extra_data}
         self.session_log = self.session_log.append(data, ignore_index=True)

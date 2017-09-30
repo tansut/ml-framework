@@ -59,6 +59,7 @@ class NeuralNetAnalyser:
             logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
 
         self.logger = logger
+        self.logger.init()
 
         self.train_options = train_options if train_options != None else {
             'foo': 12
@@ -74,7 +75,6 @@ class NeuralNetAnalyser:
         self.job_results = []
         self.job_counter = 1
 
-        self.logger.init()
         self.logger.create_session()
 
     def _train_callback(self, job, neuralnet, train_iteration):
@@ -90,7 +90,7 @@ class NeuralNetAnalyser:
         analyser = analyser_cache[analyser_id]
         train_x, train_y = train_set
         neuralnet = neuralnet_class(train_x, train_y, **kvargs)
-        self.logger.add_to_classifier_instances(neuralnet)
+        analyser.logger.add_to_classifier_instances(neuralnet)
 
         job = AnalyserJob(job_id, analyser, neuralnet, test_sets)
 
@@ -157,7 +157,7 @@ class NeuralNetAnalyser:
                                             == self.session_name]
         pred_totals = current_pred_table[current_pred_table['label']
                                          == '__totals__'].sort_values(['f1'], ascending=False)
-        title = "{0}/{1}".format(self.name, self.session_name)
+        title = "{0}/{1}".format(self.group, self.session_name)
         print("\n", "*" * 48)
         print("{:^48}".format(title.upper()))
         print("*" * 48, "\n")
