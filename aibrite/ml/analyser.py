@@ -58,8 +58,13 @@ class NeuralNetAnalyser:
                 './analyserlogs', CsvLogger.generate_file_name(group))
             logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
 
-        self.logger = logger
-        self.logger.init()
+            self.logger = logger
+            self.logger.init()
+
+        else:
+            logger = logger(self, conn_str='mongodb://localhost:27017')
+            self.logger = logger
+            logger.init()
 
         self.train_options = train_options if train_options != None else {
             'foo': 12

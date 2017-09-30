@@ -10,6 +10,7 @@ from aibrite.ml.neuralnetwithrmsprop import NeuralNetWithRMSprop
 from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
 from aibrite.ml.analyser import NeuralNetAnalyser
 from aibrite.ml.loggers import CsvLogger
+from aibrite.ml.loggers import MongodbLogger
 
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")

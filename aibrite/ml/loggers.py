@@ -38,8 +38,8 @@ class AnalyserLoggerBase:
 
 class MongodbLogger(AnalyserLoggerBase):
 
-    def __init__(self, conn_str='mongodb://localhost:27017'):
-        super().__init__()
+    def __init__(self, analyser, conn_str='mongodb://localhost:27017'):
+        super().__init__(analyser)
         self.conn_str = conn_str
         self.client = MongoClient(conn_str)
 
@@ -51,7 +51,7 @@ class MongodbLogger(AnalyserLoggerBase):
             'classifier': self.db.classifier
         }
 
-    def create_session():
+    def create_session(self):
         analyser = self.analyser
         data = {
             'session_name': analyser.session_name,
@@ -113,6 +113,35 @@ class MongodbLogger(AnalyserLoggerBase):
         try:
             inserted_classifier = self.collections.classifier.insert_one(data)
             return inserted_classifier.inserted_id
+        except Exception as e:
+            print(str(e.args))
+
+    def add_to_prediction_log(self, neuralnet, test_set_id, prediction_result, extra_data=None):
+        extra_data = extra_data if extra_data != None else {}
+        score = prediction_result.score
+        precision, recall, f1, support = score.totals
+        hyper_parameters = neuralnet.get_hyperparameters()
+        now = datetime.datetime.now()
+
+        data = {
+            'timestamp': now,
+            'classifier': neuralnet.__class__.__name__,
+            'test_set': test_set_id,
+            'precision': precision,
+            'recall': recall,
+            'accuracy': score.accuracy,
+            'f1': f1,
+            'support': support,
+            'label': '__totals__',
+            'classifier_instance': neuralnet.instance_id,
+            'prediction_time': prediction_result.elapsed(),
+            'train_time': neuralnet.train_result.elapsed(),
+            'session_name': self.analyser.session_name
+        }
+
+        try:
+            inserted_prediction = self.collections.prediction.insert_one(data)
+            return inserted_prediction.inserted_id
         except Exception as e:
             print(str(e.args))
 
