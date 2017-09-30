@@ -3,6 +3,7 @@ import datetime
 import re
 from threading import Lock
 import pandas as pd
+from pymongo import MongoClient
 
 
 class AnalyserLoggerBase:
@@ -24,20 +25,29 @@ class AnalyserLoggerBase:
     def update_session(self):
         pass
 
-    def get_session_count():
+    def get_session_count(self):
         pass
 
     def add_to_classifier_instances(self, neuralnet):
         pass
 
-    def create_session():
+    def create_session(self):
         pass
 
 
 class MongodbLogger(AnalyserLoggerBase):
-    def __init__(self, conn_str):
+
+    def __init__(self, conn_str='mongodb://localhost:27017'):
         super().__init__()
         self.conn_str = conn_str
+        self.client = MongoClient(conn_str)
+
+        self.db = self.client.nn_sandbox
+        self.collections = {
+            'session': self.db.session,
+            'train': self.db.train,
+            'prediction': self.db.prediction
+        }
 
     def create_session():
         analyser = self.analyser
@@ -47,6 +57,13 @@ class MongodbLogger(AnalyserLoggerBase):
             'timestamp': datetime.datetime.now(),
             'status': 'created'
         }
+
+        try:
+            inserted_session = self.collections['session'].insert_one(data)
+            self.session_id = inserted_session.inserted_id
+            return self.session_id
+        except Exception as e:
+            print(str(e.args))
 
     def add_to_classifier_instances(self, neuralnet):
         # data = {
