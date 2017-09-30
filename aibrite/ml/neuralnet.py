@@ -115,9 +115,12 @@ class NeuralNet(MlBase):
         self.output_layer = output_layer
 
     def prepare_data(self, train_x, train_y, labels):
-
-        self.train_x = np.asarray(train_x).T
-        self.train_y = np.asarray(train_y).reshape(len(train_y), 1).T
+        if self.normalize_inputs:
+            self.train_x = NeuralNet.zscore(np.asarray(train_x)).T
+            self.train_y = np.asarray(train_y).reshape(len(train_y), 1).T
+        else:
+            self.train_x = np.asarray(train_x).T
+            self.train_y = np.asarray(train_y).reshape(len(train_y), 1).T
 
         self.m = self.train_x.shape[1]
         self.n = self.train_x.shape[0]
@@ -151,7 +154,9 @@ class NeuralNet(MlBase):
             'learning_rate_decay': self.learning_rate_decay,
             'lambd': self.lambd,
             'minibatch_size': self.minibatch_size,
-            'shuffle': self.shuffle
+            'shuffle': self.shuffle,
+            'epochs': self.epochs,
+            'normalize_inputs': self.normalize_inputs
         }
 
     def __init__(self, train_x, train_y,
@@ -163,7 +168,8 @@ class NeuralNet(MlBase):
                  minibatch_size=0,
                  epochs=1,
                  labels=None,
-                 shuffle=False):
+                 shuffle=False,
+                 normalize_inputs=False):
         self.instance_id = str(uuid.uuid4())
         self.learning_rate = learning_rate
         self.iteration_count = iteration_count
@@ -174,6 +180,7 @@ class NeuralNet(MlBase):
         self.epochs = epochs
         self.shuffle = shuffle
         self.learning_rate_decay = learning_rate_decay
+        self.normalize_inputs = normalize_inputs
         self.prepare_data(train_x, train_y, labels)
         self.initialize_layers()
 
@@ -196,6 +203,10 @@ class NeuralNet(MlBase):
             minibatch_size = self.train_x.shape[1]
         total_batch_index = 0
         total_iteration_index = 0
+        min_cost = None
+        max_cost = None
+        avg_cost = None
+        total_cost = 0
         for epoch in range(self.epochs):
             current_batch_index = 0
 
@@ -207,20 +218,28 @@ class NeuralNet(MlBase):
                     self._forward(self.layers)
                     cost = self.compute_cost(y_values_binary)
 
-                    if train_result.min_cost is None:
-                        train_result.min_cost = cost
-                    if train_result.max_cost is None:
-                        train_result.max_cost = cost
-                    train_result.min_cost = min(train_result.min_cost, cost)
-                    train_result.max_cost = max(train_result.max_cost, cost)
+                    total_cost += cost
+                    if min_cost is None:
+                        min_cost = cost
+                    if max_cost is None:
+                        max_cost = cost
+
+                    min_cost = min(min_cost, cost)
+                    max_cost = max(max_cost, cost)
+                    avg_cost = total_cost / (total_iteration_index + 1)
+
                     calculated_learning_rate = self.learning_rate / \
                         (1 + self.learning_rate_decay * epoch)
-                    iteration_data = TrainIteration(cost=cost, epoch=epoch, current_batch_index=current_batch_index,
+
+                    iteration_data = TrainIteration(cost=cost, min_cost=min_cost, max_cost=max_cost, avg_cost=avg_cost, epoch=epoch, current_batch_index=current_batch_index,
                                                     total_batch_index=total_batch_index, total_iteration_index=total_iteration_index, current_batch_iteration_index=i, calculated_learning_rate=calculated_learning_rate)
-                    call_back(
-                        self, iteration_data) if call_back != None else None
+
                     self._backward(y_values_binary, iteration_data)
                     self._grads(y_values_binary, iteration_data)
+
+                    train_result.last_iteration = iteration_data
+                    call_back(
+                        self, iteration_data) if call_back != None else None
                     total_iteration_index += 1
                 current_batch_index += 1
                 total_batch_index += 1
@@ -228,7 +247,10 @@ class NeuralNet(MlBase):
 
     def predict(self, X, expected=None):
         self.prediction_result = PredictionResult()
-        self.input_layer.pA = np.asarray(X).T
+        if self.normalize_inputs:
+            self.input_layer.pA = NeuralNet.zscore(np.asarray(X)).T
+        else:
+            self.input_layer.pA = np.asarray(X).T
 
         for i, layer in enumerate(self._hidden_layers + [self.output_layer]):
             layer.pZ = layer.W.dot(layer.prev_layer.pA) + layer.b

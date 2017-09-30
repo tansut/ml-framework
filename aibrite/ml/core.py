@@ -8,7 +8,7 @@ ScoreReport = namedtuple("ScoreReport", ["labels",
                                          "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
 
 TrainIteration = namedtuple(
-    'TrainIteration', ['cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_index', 'current_batch_iteration_index', 'calculated_learning_rate'])
+    'TrainIteration', ['cost', 'min_cost', 'max_cost', 'avg_cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_index', 'current_batch_iteration_index', 'calculated_learning_rate'])
 
 
 # TrainResult = namedtuple('TrainResult', ['started', 'completed'])
@@ -18,8 +18,7 @@ class TrainResult:
     def __init__(self):
         self.started = datetime.datetime.now()
         self.completed = None
-        self.min_cost = None
-        self.max_cost = None
+        self.last_iteration = None
 
     def complete(self):
         self.completed = datetime.datetime.now()
@@ -113,17 +112,24 @@ class MlBase:
 
     def softmax(x):
         """Compute softmax values for each sets of scores in x."""
-        return np.exp(x) / np.sum(np.exp(x), axis=0)
+        maxx = np.max(x, axis=0)
+        exps = np.exp(x - maxx)
+        return exps / np.sum(exps, axis=0)
+        # return exps / np.sum(exps, axis=0)
 
-    def split(arr,  *ratios):
-        sizes = (np.array(ratios) * len(arr))
+    def split(arr,  *ratios, shuffle=False):
+        if (shuffle):
+            data = MlBase.shuffle(arr)
+        else:
+            data = arr
+        sizes = (np.array(ratios) * len(data))
         sizes = np.round(sizes).astype(int)
-        sizes[0] = sizes[0] + len(arr) - np.sum(sizes)
-        assert np.sum(sizes) == len(arr)
+        sizes[0] = sizes[0] + len(data) - np.sum(sizes)
+        assert np.sum(sizes) == len(data)
         res = []
         for i, v in enumerate(ratios):
             j = 0 if i == 0 else sizes[i - 1]
-            res.append(arr[j:sizes[i] + j])
+            res.append(data[j:sizes[i] + j])
         return res
 
     def __init__(self):

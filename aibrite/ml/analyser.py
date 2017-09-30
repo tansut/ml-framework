@@ -16,7 +16,7 @@ from aibrite.ml.neuralnet import NeuralNet
 analyser_cache = {}
 
 JobResult = namedtuple(
-    'JobResult', 'train_time prediction_time id classifier hyper_parameters')
+    'JobResult', 'train_result prediction_results id classifier hyper_parameters')
 
 
 class AnalyserJob:
@@ -24,17 +24,16 @@ class AnalyserJob:
     def __init__(self, id, analyser, neuralnet, test_sets):
         self.id = id
         self.status = 'created'
-
-        self.train_time = 0
-        self.prediction_time = 0
         self.analyser = analyser
         self.neuralnet = neuralnet
         self.test_sets = test_sets
+        self.prediction_results = {}
+        self.train_result = None
 
     def get_result(self):
         return JobResult(id=self.id,
-                         train_time=self.train_time,
-                         prediction_time=self.prediction_time,
+                         train_result=self.train_result,
+                         prediction_results=self.prediction_results,
                          classifier=self.neuralnet.__class__.__name__,
                          hyper_parameters=self.neuralnet.get_hyperparameters())
 
@@ -47,7 +46,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
@@ -97,13 +96,14 @@ class NeuralNetAnalyser:
         job.status = 'training:started'
         neuralnet.train(lambda neuralnet, train_iteration: analyser._train_callback(
             job, neuralnet, train_iteration))
-        job.train_time = neuralnet.train_result.elapsed()
+        job.train_result = neuralnet.train_result
         job.status = 'prediction:started'
         for test_set_id, test_set in test_sets.items():
             test_set_x, test_set_y = test_set
             prediction_result = neuralnet.predict(
                 test_set_x, expected=test_set_y)
-            job.prediction_time += prediction_result.elapsed()
+            # job.prediction_time += prediction_result.elapsed()
+            job.prediction_results[test_set_id] = prediction_result
             job.add_to_prediction_log(test_set_id, prediction_result)
 
         job.status = 'completed'
@@ -162,9 +162,9 @@ class NeuralNetAnalyser:
         print("{:^48}".format(title.upper()))
         print("*" * 48, "\n")
 
-        total_train_time = sum(r.train_time for r in self.job_results)
-        total_prediction_time = sum(
-            r.prediction_time for r in self.job_results)
+        # total_train_time = sum(r.train_time for r in self.job_results)
+        # total_prediction_time = sum(
+        #     r.prediction_time for r in self.job_results)
 
         # print("Total train/prediction seconds: {0:.2f}/{1:.2f}\n".format(
         #     total_train_time, total_prediction_time))
