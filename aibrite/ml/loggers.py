@@ -4,6 +4,7 @@ import re
 from threading import Lock
 import pandas as pd
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 
 class AnalyserLoggerBase:
@@ -92,7 +93,7 @@ class MongodbLogger(AnalyserLoggerBase):
             'classifier_instance': neuralnet.instance_id,
             'extra_data': extra_data,
             'train_data': train_data,
-            'prediction': prediction_data,
+            'prediction': prediction_data
         }
 
         try:
@@ -102,10 +103,18 @@ class MongodbLogger(AnalyserLoggerBase):
             print(str(e.args))
 
     def add_to_classifier_instances(self, neuralnet):
-        # data = {
-        #     ''
-        # }
-        pass
+        hyper_parameters = neuralnet.get_hyperparameters()
+        data = {
+            'session': self.session_id,
+            'classifier': neuralnet.__class__.__name__,
+            'classifier_instance': neuralnet.instance_id,
+            'hyperparameters': hyper_parameters
+        }
+        try:
+            inserted_classifier = self.collections.classifier.insert_one(data)
+            return inserted_classifier.inserted_id
+        except Exception as e:
+            print(str(e.args))
 
 
 class CsvLogger(AnalyserLoggerBase):
