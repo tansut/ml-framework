@@ -22,10 +22,8 @@ class TrainResult:
 
     def complete(self):
         self.completed = datetime.datetime.now()
+        self.elapsed = (self.completed - self.started).total_seconds()
         return self
-
-    def elapsed(self):
-        return (self.completed - self.started).total_seconds()
 
 
 class PredictionResult:
@@ -35,13 +33,11 @@ class PredictionResult:
 
     def complete(self, predicted, probabilities, score):
         self.completed = datetime.datetime.now()
+        self.elapsed = (self.completed - self.started).total_seconds()
         self.predicted = predicted
         self.probabilities = probabilities
         self.score = score
         return self
-
-    def elapsed(self):
-        return (self.completed - self.started).total_seconds()
 
 
 class NeuralNetLayer:

@@ -31,7 +31,7 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
 normalize_inputs = [True]
-iteration_count = [8]
+iteration_count = [8, 16]
 learning_rate = [0.005]
 hidden_layers = [(192, 192, 192, 192)]
 lambds = [0.2]
@@ -44,7 +44,7 @@ test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
 # test_sets = {'train': (train_x, train_y)}
-test_sets = {'test': (test_x, test_y)}
+# test_sets = {'test': (test_x, test_y)}
 
 
 def jb(analyser, results):
@@ -65,7 +65,7 @@ for it in iteration_count:
             for lambd in lambds:
                 for ni in normalize_inputs:
                     for lrd in learnin_rate_decay:
-                        for epoch in epoch:
+                        for ep in epoch:
                             for shl in shuffle:
                                 for mbs in minibatch_size:
                                     analyser.submit(NeuralNetWithAdam, train_set, test_sets,
@@ -75,7 +75,7 @@ for it in iteration_count:
                                                     iteration_count=it,
                                                     lambd=lambd,
                                                     normalize_inputs=ni,
-                                                    epochs=epoch,
+                                                    epochs=ep,
                                                     shuffle=shl,
                                                     minibatch_size=mbs,
                                                     labels=labels)

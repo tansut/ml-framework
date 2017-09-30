@@ -46,7 +46,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
@@ -95,7 +95,7 @@ class NeuralNetAnalyser:
         train_x, train_y = train_set
         neuralnet = neuralnet_class(train_x, train_y, **kvargs)
         analyser.logger.add_to_classifier_instances(neuralnet)
-
+        neuralnet.instance_id = job_id
         job = AnalyserJob(job_id, analyser, neuralnet, test_sets)
 
         job.status = 'training:started'
@@ -107,11 +107,11 @@ class NeuralNetAnalyser:
             test_set_x, test_set_y = test_set
             prediction_result = neuralnet.predict(
                 test_set_x, expected=test_set_y)
-            # job.prediction_time += prediction_result.elapsed()
             job.prediction_results[test_set_id] = prediction_result
             job.add_to_prediction_log(test_set_id, prediction_result)
 
         job.status = 'completed'
+        analyser.logger.flush()
         return job.get_result()
 
     def submit(self, neuralnet_class, train_set, test_sets, id=None, **kvargs):
@@ -155,17 +155,62 @@ class NeuralNetAnalyser:
     def _as_completed(self):
         return concurrent.futures.as_completed(self.worker_list)
 
-    def print_summary(self):
-        prediction_log = self.logger.prediction_log
+    def format_dict(d):
+        fmt_str = ""
+        for k, v in d.items():
+            fmt_str += "{key:<20}:{value}\n".format(key=k, value=v)
+        return fmt_str
 
-        current_pred_table = prediction_log[prediction_log['session_name']
-                                            == self.session_name]
-        pred_totals = current_pred_table[current_pred_table['label']
-                                         == '__totals__'].sort_values(['f1'], ascending=False)
+    def print_summary(self):
         title = "{0}/{1}".format(self.group, self.session_name)
-        print("\n", "*" * 48)
+        print("\n")
+        print("*" * 48)
         print("{:^48}".format(title.upper()))
         print("*" * 48, "\n")
+
+        # print("{session:<20}{cost:>20}{train_time:>7}".format(
+        #     session="Test#", cost="cost(max/min/avg)", train_time="time"))
+        for jr in self.job_results:
+            print("-" * 48)
+            print("{0:^36}".format(jr.id.upper()))
+            print("-" * 48)
+
+            last_iteration = jr.train_result.last_iteration
+
+            props = {
+                'costs(max/min/avg)': "{maxcost:.2f} / {mincost:.2f} / {avgcost:.2f}".format(
+                    mincost=last_iteration.min_cost,
+                    maxcost=last_iteration.max_cost,
+                    avgcost=last_iteration.avg_cost),
+                'train time': jr.train_result.elapsed
+            }
+
+            # print("{id:<15}{costs:>20}{train_time:>7.1f}".format(
+            #       id=jr.id,
+            #       costs=,
+            #       train_time=jr.train_result.elapsed))
+            print(NeuralNetAnalyser.format_dict(props))
+            print(NeuralNetAnalyser.format_dict(jr.hyper_parameters))
+
+            title = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}".format(
+                test_set="set", precision="precision", recall="recall", f1="f1", support="support")
+            print(title)
+            for test_set, result in jr.prediction_results.items():
+                precision, recall, f1, support = result.score.totals
+                print("{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}".format(
+                    test_set=test_set,
+                    f1=f1,
+                    precision=precision,
+                    recall=recall,
+                    support=support))
+            print("\n")
+
+        # prediction_log = self.logger.prediction_log
+
+        # current_pred_table = prediction_log[prediction_log['session_name']
+        #                                     == self.session_name]
+        # pred_totals = current_pred_table[current_pred_table['label']
+        #                                  == '__totals__'].sort_values(['f1'], ascending=False)
 
         # total_train_time = sum(r.train_time for r in self.job_results)
         # total_prediction_time = sum(
@@ -176,13 +221,13 @@ class NeuralNetAnalyser:
 
         # print("Predictions:")
 
-        with pd.option_context('expand_frame_repr', False):
-            # for result in self.job_results:
-            #     df = pred_totals[pred_totals['job_id'] == result.id]
-            #     print("{0} {1}".format(result.classifier, result.train_time))
-            print(
-                pred_totals[['test_set', 'f1', 'precision', 'recall', 'support',
-                             'learning_rate', 'hidden_layers', 'iteration_count']])
+        # with pd.option_context('expand_frame_repr', False):
+        #     # for result in self.job_results:
+        #     #     df = pred_totals[pred_totals['job_id'] == result.id]
+        #     #     print("{0} {1}".format(result.classifier, result.train_time))
+        #     print(
+        #         pred_totals[["classifier_instance", 'test_set', 'f1', 'precision', 'recall', 'support',
+        #                      'learning_rate', 'hidden_layers', 'iteration_count']])
 
         elapsed = (self.finish_time - self.start_time).total_seconds()
         print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,

@@ -35,6 +35,9 @@ class AnalyserLoggerBase:
     def create_session(self):
         pass
 
+    def flush(self):
+        pass
+
 
 class MongodbLogger(AnalyserLoggerBase):
 
@@ -134,8 +137,8 @@ class MongodbLogger(AnalyserLoggerBase):
             'support': support,
             'label': '__totals__',
             'classifier_instance': neuralnet.instance_id,
-            'prediction_time': prediction_result.elapsed(),
-            'train_time': neuralnet.train_result.elapsed(),
+            'prediction_time': prediction_result.elapsed,
+            'train_time': neuralnet.train_result.elapsed,
             'session_name': self.analyser.session_name
         }
 
@@ -155,16 +158,21 @@ class CsvLogger(AnalyserLoggerBase):
         pass
 
     def done(self):
-        for item in self._prediction_data:
-            self.prediction_log = self.prediction_log.append(
-                item, ignore_index=True)
-        for item in self._train_data:
-            self.train_log = self.train_log.append(
-                item, ignore_index=True)
+        pass
 
-        self.prediction_log.to_csv(self.pred_file, index=False)
-        self.train_log.to_csv(self.train_file, index=False)
-        self.session_log.to_csv(self.session_file, index=False)
+    def flush(self):
+        with self._savelock:
+            for item in self._prediction_data:
+                self.prediction_log = self.prediction_log.append(
+                    item, ignore_index=True)
+            for item in self._train_data:
+                self.train_log = self.train_log.append(
+                    item, ignore_index=True)
+            # print(len(self._prediction_data), os.getpid())
+            # if (len(self._prediction_data) > 0):
+            self.prediction_log.to_csv(self.pred_file, index=False)
+            self.train_log.to_csv(self.train_file, index=False)
+            self.session_log.to_csv(self.session_file, index=False)
 
     def init(self):
 
@@ -199,6 +207,7 @@ class CsvLogger(AnalyserLoggerBase):
 
         self._predlock = Lock()
         self._trainlock = Lock()
+        self._savelock = Lock()
         self._prediction_data = []
         self._train_data = []
 
@@ -267,8 +276,8 @@ class CsvLogger(AnalyserLoggerBase):
                 'label': score.labels[i],
                 'support': score.support[i],
                 'classifier_instance': neuralnet.instance_id,
-                'prediction_time': prediction_result.elapsed(),
-                'train_time': neuralnet.train_result.elapsed(),
+                'prediction_time': prediction_result.elapsed,
+                'train_time': neuralnet.train_result.elapsed,
                 'session_name': self.analyser.session_name
             }
 
@@ -286,8 +295,8 @@ class CsvLogger(AnalyserLoggerBase):
             'support': support,
             'label': '__totals__',
             'classifier_instance': neuralnet.instance_id,
-            'prediction_time': prediction_result.elapsed(),
-            'train_time': neuralnet.train_result.elapsed(),
+            'prediction_time': prediction_result.elapsed,
+            'train_time': neuralnet.train_result.elapsed,
             'session_name': self.analyser.session_name
         }
 
