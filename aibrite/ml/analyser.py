@@ -50,7 +50,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
@@ -144,7 +144,8 @@ class NeuralNetAnalyser:
         self.job_results.append(job_result)
 
     def join(self):
-        print("Waiting for {0} jobs".format(self.job_counter), end='')
+        print("Waiting for {0} sessions to complete".format(
+            self.job_counter), end='')
         sys.stdout.flush()
         self.start_time = datetime.datetime.now()
         for future in self._as_completed():
@@ -169,26 +170,46 @@ class NeuralNetAnalyser:
     def _as_completed(self):
         return concurrent.futures.as_completed(self.worker_list)
 
-    def format_dict(d):
+    def format_dict(d, use_cols=False):
         fmt_str = ""
         i = 0
-        for k, v in d.items():
-            if i % 2 == 0 and i != 0:
-                fmt_str += "\n"
-            val = "{key:<20}:{value}".format(key=k, value=v)
-            fmt_str += "{0:<40}".format(val)
-            i += 1
+        if (use_cols):
+            for k, v in d.items():
+                if i % 2 == 0 and i != 0 and i != len(d) - 1:
+                    fmt_str += "\n"
+                val = "{key:<20}:{value}".format(key=k, value=v)
+                fmt_str += "{0:<40}".format(val)
+                i += 1
+        else:
+            for k, v in d.items():
+                val = "{key:<20}:{value}".format(key=k, value=v)
+                fmt_str += val + ("\n" if i != len(d) - 1 else "")
+                i += 1
         return fmt_str
 
-    def changed_dict_items(ref, d):
+    def kpi_symbol(new, old):
+        if type(new) is str:
+            return "*"
+        elif new > old:
+            return chr(8593)
+        elif old > new:
+            return chr(8595)
+        else:
+            return ""
+
+    def changed_dict_items(ref, d, ):
         res = {}
         for k, v in d.items():
             if ref.get(k) is None:
-                res[k + ' *'] = v
+                res[k + '*'] = v
             elif ref[k] != v:
-                res[k + '*'] = "{1} ({0})".format(ref[k], v)
+                res[k + '*'] = "{0:<15} {1}".format(
+                    "{1}{0}".format(
+                        NeuralNetAnalyser.kpi_symbol(v, ref[k]), v),
+                    " ({0} {1})".format("was", ref[k]))
             else:
-                res[k] = v
+                pass
+                # res[k] = v
         for k, v in ref.items():
             if d.get(k) is None:
                 res[k + '*'] = v
@@ -214,7 +235,27 @@ class NeuralNetAnalyser:
         return list(set(sum([i for i in (list(jr.prediction_results.keys())
                                          for jr in self.job_results)], [])))
 
+    def get_sorted_results(self, reverse=False):
+        test_sets = self.get_unique_testset_names()
+        test_sets.append("__totals__")
+
+        result = {}
+
+        for ts in test_sets:
+            if ts == "__totals__":
+                result[ts] = sorted(
+                    self.job_results, key=lambda jr: jr.prediction_totals[2], reverse=reverse)
+            else:
+                result[ts] = sorted(
+                    self.job_results, key=lambda jr: jr.prediction_results[ts].score.totals[2], reverse=reverse)
+
+        return result
+
     def print_summary(self, target=None):
+
+        job_results_sorted = self.get_sorted_results()
+        best_by_target = job_results_sorted[target][-1]
+        worst_by_target = job_results_sorted[target][0]
 
         all_test_sets = self.get_unique_testset_names()
 
@@ -223,51 +264,75 @@ class NeuralNetAnalyser:
         elif target is None:
             target = '__totals__'
 
+        def job_title(jr):
+            bests = []
+            worsts = []
+            for test_set_id, pred_result in jr.prediction_results.items():
+                results_for_testset = job_results_sorted[test_set_id]
+                best = results_for_testset[-1]
+                worst = results_for_testset[0]
+                if (best.prediction_results[test_set_id] == pred_result):
+                    bests.append(test_set_id)
+                elif worst.prediction_results[test_set_id] == pred_result:
+                    worsts.append(test_set_id)
+                    # return "**WORST on [{0}]**".format(test_set_id)
+            results = []
+            if (len(bests) > 0):
+                results.append("*BEST* on [" + ",".join(bests) + "]")
+            if (len(worsts) > 0):
+                results.append("*WORST* on [" + ",".join(worsts) + "]")
+            best_worst = ",".join(results)
+            return best_worst if len(results) > 0 else jr.id
+
+        def print_job(jr):
+            print("{0:^80}".format(job_title(jr)))
+            print("-" * 80)
+
+            last_iteration = jr.train_result.last_iteration
+
+            title_format = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}{change:>10}"
+            title = title_format.format(
+                test_set="set", precision="precision", recall="recall", f1="f1", support="support", time="time", change="change*")
+
+            print(title)
+            for test_set, result in jr.prediction_results.items():
+                precision, recall, f1, support = result.score.totals
+                values_format = "{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}{change:9.2f}%"
+                best_f1 = (
+                    job_results_sorted[test_set][-1]).prediction_results[test_set].score.totals[2]
+                change = 0.0 if f1 == best_f1 else (100 *
+                                                    ((f1 - best_f1) / best_f1))
+                print(values_format.format(
+                    test_set=test_set,
+                    f1=f1,
+                    precision=precision,
+                    recall=recall,
+                    support=support,
+                    time=result.elapsed,
+                    change=change))
+
+            if jr == best_by_target:
+                print("\nhyper parameters:\n".format(target))
+                print(NeuralNetAnalyser.format_dict(
+                    jr.hyper_parameters, use_cols=True))
+            else:
+                print(
+                    "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
+                print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
+                    best_by_target.hyper_parameters, jr.hyper_parameters)))
+
+            print("-" * 80)
+            print("\n")
+
         title = "{0}/{1}".format(self.group, self.session_name)
         print("\n")
         print("*" * 80)
         print("{:^80}".format(title.upper()))
         print("*" * 80, "\n")
 
-        if (target == '__totals__'):
-            def sort_fn(jr): return jr.prediction_totals[2]
-        else:
-            def sort_fn(
-                jr): return jr.prediction_results[target].score.totals[2]
-        job_results_sorted = sorted(
-            self.job_results, key=sort_fn, reverse=False)
-        prev_jr = None
-        best = job_results_sorted[len(job_results_sorted) - 1]
-        for jr in job_results_sorted:
-            print("-" * 80)
-            print("{0:^80}".format(jr.id.upper()))
-            # print("-" * 48)
-            # print("\n")
-            last_iteration = jr.train_result.last_iteration
-            print("-" * 80)
+        for jr in job_results_sorted[target]:
+            print_job(jr)
 
-            if prev_jr is None:
-                print(NeuralNetAnalyser.format_dict(jr.hyper_parameters))
-            else:
-                # print("changes based on {0}:\n".format(prev_jr.id))
-                print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
-                    prev_jr.hyper_parameters, jr.hyper_parameters)))
-            prev_jr = jr
-
-            title = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}".format(
-                test_set="set", precision="precision", recall="recall", f1="f1", support="support", time="time")
-            print("\n")
-            print(title)
-            for test_set, result in jr.prediction_results.items():
-                precision, recall, f1, support = result.score.totals
-                print("{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}".format(
-                    test_set=test_set,
-                    f1=f1,
-                    precision=precision,
-                    recall=recall,
-                    support=support,
-                    time=result.elapsed))
-            print("\n")
             # print("Train summary: costs (max/min/avg) {maxcost:.2f}/{mincost:.2f}/{avgcost:.2f}, traintime {train_time:.2f}".format(
             #     mincost=last_iteration.min_cost,
             #     maxcost=last_iteration.max_cost,
@@ -277,11 +342,24 @@ class NeuralNetAnalyser:
         print("{:^80}".format("Summary"))
         print("." * 80, "\n")
         print(
-            "Best seems {0} (last one) based on [{1}] test set.".format(best.id, target))
+            "**The Best** seems {0} (last one) based on [{1}] set.\n".format(best_by_target.id, target))
         if (target != '__totals__'):
-            print("Here is the score report.")
-            best_score = best.prediction_results[target].score
-            print(NeuralNet.format_score_report(best_score))
+            print(
+                "Here is the score report for *best* on [{0}]".format(target))
+            score = best_by_target.prediction_results[target].score
+            print(NeuralNet.format_score_report(score))
+        print(
+            "\n**Worst** seems {0} (first one) based on [{1}] set.\n".format(worst_by_target.id, target))
+        if (target != '__totals__'):
+            print(
+                "Here is the score report for *worst* on [{0}]".format(target))
+            score = worst_by_target.prediction_results[target].score
+            print(NeuralNet.format_score_report(score))
+        print("\nHyper parameters for *worst* on [{0}]\n".format(target))
+        print(NeuralNetAnalyser.format_dict(
+            worst_by_target.hyper_parameters, use_cols=True))
+
         elapsed = (self.finish_time - self.start_time).total_seconds()
-        print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
-                                                                              self.executor._max_workers))
+        print("\nNote * on hyper parameters represent changes with respect to **best**")
+        print("Completed at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
+                                                                            self.executor._max_workers))
