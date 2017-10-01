@@ -291,16 +291,17 @@ class NeuralNetAnalyser:
 
             title_format = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}{change:>10}"
             title = title_format.format(
-                test_set="set", precision="precision", recall="recall", f1="f1", support="support", time="time", change="change*")
+                test_set="", precision="precision", recall="recall", f1="f1", support="support", time="time", change="change*")
 
             print(title)
+            changes = {}
             for test_set, result in jr.prediction_results.items():
                 precision, recall, f1, support = result.score.totals
                 values_format = "{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}{change:9.2f}%"
                 best_f1 = (
                     job_results_sorted[test_set][-1]).prediction_results[test_set].score.totals[2]
-                change = 0.0 if f1 == best_f1 else (100 *
-                                                    ((f1 - best_f1) / best_f1))
+                change = changes[test_set] = (0.0 if f1 == best_f1 else (100 *
+                                                                         ((f1 - best_f1) / best_f1)))
                 print(values_format.format(
                     test_set=test_set,
                     f1=f1,
@@ -315,11 +316,14 @@ class NeuralNetAnalyser:
                 print(NeuralNetAnalyser.format_dict(
                     jr.hyper_parameters, use_cols=True))
             else:
-                print(
-                    "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
+                # print(
+                #     "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
+                if (target != '__totals__'):
+                    print(
+                        "\n[{0}] performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, changes[target]))
+
                 print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
                     best_by_target.hyper_parameters, jr.hyper_parameters)))
-
             print("-" * 80)
             print("\n")
 
