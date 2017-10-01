@@ -4,8 +4,9 @@ import os
 import time
 import uuid
 from collections import namedtuple, OrderedDict
+import numpy as np
 
-from aibrite.ml.loggers import CsvLogger
+from aibrite.ml.loggers import CsvLogger, DefaultLgogger
 
 import pandas as pd
 
@@ -16,7 +17,7 @@ from aibrite.ml.neuralnet import NeuralNet
 analyser_cache = {}
 
 JobResult = namedtuple(
-    'JobResult', 'train_result prediction_results id classifier hyper_parameters')
+    'JobResult', 'train_result prediction_results prediction_totals id classifier hyper_parameters')
 
 
 class AnalyserJob:
@@ -28,12 +29,14 @@ class AnalyserJob:
         self.neuralnet = neuralnet
         self.test_sets = test_sets
         self.prediction_results = {}
+        self.prediction_totals = ()
         self.train_result = None
 
     def get_result(self):
         return JobResult(id=self.id,
                          train_result=self.train_result,
                          prediction_results=self.prediction_results,
+                         prediction_totals=self.prediction_totals,
                          classifier=self.neuralnet.__class__.__name__,
                          hyper_parameters=self.neuralnet.get_hyperparameters())
 
@@ -46,23 +49,24 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
         self.worker_list = []
+        self.logger = logger
 
         if logger is None:
-            log_dir = os.path.join(
-                './analyserlogs', CsvLogger.generate_file_name(group))
-            logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
+            # log_dir = os.path.join(
+            #     './analyserlogs', CsvLogger.generate_file_name(group))
+            # logger = CsvLogger(self, base_dir=log_dir, overwrite=True)
 
-            self.logger = logger
+            self.logger = DefaultLgogger(self)
             self.logger.init()
 
         else:
-            logger = logger(self, conn_str='mongodb://localhost:27017')
-            self.logger = logger
+            # logger = logger(self, conn_str='mongodb://localhost:27017')
+            # self.logger = logger
             logger.init()
 
         self.train_options = train_options if train_options != None else {
@@ -103,13 +107,16 @@ class NeuralNetAnalyser:
             job, neuralnet, train_iteration))
         job.train_result = neuralnet.train_result
         job.status = 'prediction:started'
+        pred_totals = np.asarray([0., 0., 0., 0])
         for test_set_id, test_set in test_sets.items():
             test_set_x, test_set_y = test_set
             prediction_result = neuralnet.predict(
                 test_set_x, expected=test_set_y)
             job.prediction_results[test_set_id] = prediction_result
             job.add_to_prediction_log(test_set_id, prediction_result)
+            pred_totals += np.asarray(prediction_result.score.totals)
 
+        job.prediction_totals = pred_totals / len(job.prediction_results)
         job.status = 'completed'
         analyser.logger.flush()
         return job.get_result()
@@ -136,6 +143,7 @@ class NeuralNetAnalyser:
         self.job_results.append(job_result)
 
     def join(self):
+        print("Waiting for {0} jobs ...".format(self.job_counter))
         self.start_time = datetime.datetime.now()
         for future in self._as_completed():
             try:
@@ -148,6 +156,7 @@ class NeuralNetAnalyser:
             else:
                 self.worker_list.remove(future)
                 self._complete_job(job_result)
+                print("{0} completed.".format(job_result.id))
                 if len(self.worker_list) <= 0:
                     self._complete_session()
         self.finish_time = datetime.datetime.now()
@@ -157,58 +166,92 @@ class NeuralNetAnalyser:
 
     def format_dict(d):
         fmt_str = ""
+        i = 0
         for k, v in d.items():
-            fmt_str += "{key:<20}:{value}\n".format(key=k, value=v)
+            if i % 2 == 0 and i != 0:
+                fmt_str += "\n"
+            val = "{key:<20}:{value}".format(key=k, value=v)
+            fmt_str += "{0:<40}".format(val)
+            i += 1
         return fmt_str
 
     def changed_dict_items(ref, d):
         res = {}
         for k, v in d.items():
             if ref.get(k) is None:
-                res[k] = v
+                res[k + ' *'] = v
             elif ref[k] != v:
-                res[k] = "{0}->{1}".format(ref[k], v)
+                res[k + '*'] = "{1} ({0})".format(ref[k], v)
+            else:
+                res[k] = v
         for k, v in ref.items():
             if d.get(k) is None:
-                res[k] = v
+                res[k + '*'] = v
         return res
 
-    def print_summary(self):
+    def get_testset_from_user(self):
+        test_set_indexes = {}
+        i = 0
+        test_set_indexes[str(i)] = '__totals__'
+        print("{0}: {1}".format(0, 'ALL'))
+        all_test_sets = self.get_unique_testset_names()
+
+        for ts in all_test_sets:
+            i += 1
+            print("{0}: {1}".format(i, ts))
+            test_set_indexes[str(i)] = ts
+
+        selected = input("Which test set do you want to optimize ?")
+        ts = test_set_indexes.get(selected, "__totals__")
+        return ts
+
+    def get_unique_testset_names(self):
+        return list(set(sum([i for i in (list(jr.prediction_results.keys())
+                                         for jr in self.job_results)], [])))
+
+    def print_summary(self, target=None):
+
+        all_test_sets = self.get_unique_testset_names()
+
+        if (len(all_test_sets) == 1):
+            target = all_test_sets[0]
+        elif target is None:
+            target = '__totals__'
+
         title = "{0}/{1}".format(self.group, self.session_name)
         print("\n")
-        print("*" * 48)
-        print("{:^48}".format(title.upper()))
-        print("*" * 48, "\n")
+        print("*" * 80)
+        print("{:^80}".format(title.upper()))
+        print("*" * 80, "\n")
 
+        if (target == '__totals__'):
+            def sort_fn(jr): return jr.prediction_totals[2]
+        else:
+            def sort_fn(
+                jr): return jr.prediction_results[target].score.totals[2]
+        job_results_sorted = sorted(
+            self.job_results, key=sort_fn, reverse=False)
         prev_jr = None
-        for jr in self.job_results:
-            print("-" * 48)
-            print("{0:^36}\n".format(jr.id.upper()))
+        best = job_results_sorted[len(job_results_sorted) - 1]
+        for jr in job_results_sorted:
+            print("-" * 80)
+            print("{0:^80}".format(jr.id.upper()))
             # print("-" * 48)
             # print("\n")
             last_iteration = jr.train_result.last_iteration
+            print("-" * 80)
 
-            # props = {
-            #     'cost (max/min/avg)': "{maxcost:.2f}/{mincost:.2f}/{avgcost:.2f}".format(
-            #         mincost=last_iteration.min_cost,
-            #         maxcost=last_iteration.max_cost,
-            #         avgcost=last_iteration.avg_cost),
-            #     'train time': jr.train_result.elapsed
-            # }
-            # print(NeuralNetAnalyser.format_dict(props))
-            print("-" * 48)
-
-            tracked_items = OrderedDict({**props, **jr.hyper_parameters})
             if prev_jr is None:
                 print(NeuralNetAnalyser.format_dict(jr.hyper_parameters))
-                prev_jr = jr
             else:
-                print("changes based on {0}:\n".format(prev_jr.id))
+                # print("changes based on {0}:\n".format(prev_jr.id))
                 print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
                     prev_jr.hyper_parameters, jr.hyper_parameters)))
+            prev_jr = jr
 
             title = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}".format(
                 test_set="set", precision="precision", recall="recall", f1="f1", support="support", time="time")
+            print("\n")
             print(title)
             for test_set, result in jr.prediction_results.items():
                 precision, recall, f1, support = result.score.totals
@@ -219,8 +262,21 @@ class NeuralNetAnalyser:
                     recall=recall,
                     support=support,
                     time=result.elapsed))
-            # print("\n")
-
+            print("\n")
+            # print("Train summary: costs (max/min/avg) {maxcost:.2f}/{mincost:.2f}/{avgcost:.2f}, traintime {train_time:.2f}".format(
+            #     mincost=last_iteration.min_cost,
+            #     maxcost=last_iteration.max_cost,
+            #     avgcost=last_iteration.avg_cost,
+            #     train_time=jr.train_result.elapsed))
+        print("." * 80)
+        print("{:^80}".format("Summary"))
+        print("." * 80, "\n")
+        print(
+            "Best seems {0} (last one) based on [{1}] test set.".format(best.id, target))
+        if (target != '__totals__'):
+            print("Here is the score report.")
+            best_score = best.prediction_results[target].score
+            print(NeuralNet.format_score_report(best_score))
         elapsed = (self.finish_time - self.start_time).total_seconds()
         print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
                                                                               self.executor._max_workers))

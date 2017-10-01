@@ -27,7 +27,7 @@ class AnalyserLoggerBase:
         pass
 
     def get_session_count(self):
-        pass
+        return 1
 
     def add_to_classifier_instances(self, neuralnet):
         pass
@@ -37,6 +37,10 @@ class AnalyserLoggerBase:
 
     def flush(self):
         pass
+
+
+class DefaultLgogger(AnalyserLoggerBase):
+    pass
 
 
 class MongodbLogger(AnalyserLoggerBase):
@@ -161,7 +165,10 @@ class CsvLogger(AnalyserLoggerBase):
         pass
 
     def flush(self):
+        print("flush start")
+
         with self._savelock:
+            print("flush loc ac")
             for item in self._prediction_data:
                 self.prediction_log = self.prediction_log.append(
                     item, ignore_index=True)
@@ -173,6 +180,7 @@ class CsvLogger(AnalyserLoggerBase):
             self.prediction_log.to_csv(self.pred_file, index=False)
             self.train_log.to_csv(self.train_file, index=False)
             self.session_log.to_csv(self.session_file, index=False)
+        print("flush done")
 
     def init(self):
 
@@ -252,9 +260,11 @@ class CsvLogger(AnalyserLoggerBase):
 
         data = {**base_cols, **train_data, **
                 hyper_parameters, **prediction_data, **extra_data}
+        print("wait tra lock")
 
         with self._trainlock:
             self._train_data.append(data)
+        print(" tra lock done")
         return data
 
     def add_to_prediction_log(self, neuralnet, test_set_id, prediction_result, extra_data=None):
@@ -302,8 +312,10 @@ class CsvLogger(AnalyserLoggerBase):
 
         data = {**base_cols, **hyper_parameters, **extra_data}
         rows_to_add.append(data)
-
+        print("wait pred lock")
         with self._predlock:
             for row in rows_to_add:
                 self._prediction_data.append(row)
+        print(" pred lock done")
+
         return data
