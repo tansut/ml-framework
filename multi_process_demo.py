@@ -31,7 +31,7 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
 normalize_inputs = [True]
-iteration_count = [3, 9, 12]
+iteration_count = [300, 90, 12]
 learning_rate = [0.005, 0.003]
 hidden_layers = [(12, 6, 24, 12)]
 lambds = [0.2, 0.4]

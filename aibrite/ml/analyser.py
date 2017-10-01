@@ -5,6 +5,7 @@ import time
 import uuid
 from collections import namedtuple, OrderedDict
 import numpy as np
+import sys
 
 from aibrite.ml.loggers import CsvLogger, DefaultLgogger
 
@@ -143,7 +144,8 @@ class NeuralNetAnalyser:
         self.job_results.append(job_result)
 
     def join(self):
-        print("Waiting for {0} jobs ...".format(self.job_counter))
+        print("Waiting for {0} jobs".format(self.job_counter), end='')
+        sys.stdout.flush()
         self.start_time = datetime.datetime.now()
         for future in self._as_completed():
             try:
@@ -156,9 +158,12 @@ class NeuralNetAnalyser:
             else:
                 self.worker_list.remove(future)
                 self._complete_job(job_result)
-                print("{0} completed.".format(job_result.id))
+                print("{0}".format("."), end='')
+                sys.stdout.flush()
                 if len(self.worker_list) <= 0:
                     self._complete_session()
+                    print("\n")
+
         self.finish_time = datetime.datetime.now()
 
     def _as_completed(self):
