@@ -152,6 +152,25 @@ class MongodbLogger(AnalyserLoggerBase):
         except Exception as e:
             print(str(e.args))
 
+    def update_session(self, values):
+        # status = values.status
+        # update_value = {
+        #     'status': status
+        # }
+        try:
+            self.collections.session.update_one({
+                '_id': self.session_id,
+                '$set': values
+            })
+        except Exception as e:
+            print(str(e.args))
+
+    def init(self):
+        pass
+
+    def done(self):
+        pass
+
 
 class CsvLogger(AnalyserLoggerBase):
 
