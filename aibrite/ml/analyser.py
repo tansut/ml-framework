@@ -3,7 +3,7 @@ import datetime
 import os
 import time
 import uuid
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 from aibrite.ml.loggers import CsvLogger
 
@@ -161,6 +161,18 @@ class NeuralNetAnalyser:
             fmt_str += "{key:<20}:{value}\n".format(key=k, value=v)
         return fmt_str
 
+    def changed_dict_items(ref, d):
+        res = {}
+        for k, v in d.items():
+            if ref.get(k) is None:
+                res[k] = v
+            elif ref[k] != v:
+                res[k] = "{0}->{1}".format(ref[k], v)
+        for k, v in ref.items():
+            if d.get(k) is None:
+                res[k] = v
+        return res
+
     def print_summary(self):
         title = "{0}/{1}".format(self.group, self.session_name)
         print("\n")
@@ -168,66 +180,46 @@ class NeuralNetAnalyser:
         print("{:^48}".format(title.upper()))
         print("*" * 48, "\n")
 
-        # print("{session:<20}{cost:>20}{train_time:>7}".format(
-        #     session="Test#", cost="cost(max/min/avg)", train_time="time"))
+        prev_jr = None
         for jr in self.job_results:
             print("-" * 48)
-            print("{0:^36}".format(jr.id.upper()))
-            print("-" * 48)
-
+            print("{0:^36}\n".format(jr.id.upper()))
+            # print("-" * 48)
+            # print("\n")
             last_iteration = jr.train_result.last_iteration
 
-            props = {
-                'costs(max/min/avg)': "{maxcost:.2f} / {mincost:.2f} / {avgcost:.2f}".format(
-                    mincost=last_iteration.min_cost,
-                    maxcost=last_iteration.max_cost,
-                    avgcost=last_iteration.avg_cost),
-                'train time': jr.train_result.elapsed
-            }
+            # props = {
+            #     'cost (max/min/avg)': "{maxcost:.2f}/{mincost:.2f}/{avgcost:.2f}".format(
+            #         mincost=last_iteration.min_cost,
+            #         maxcost=last_iteration.max_cost,
+            #         avgcost=last_iteration.avg_cost),
+            #     'train time': jr.train_result.elapsed
+            # }
+            # print(NeuralNetAnalyser.format_dict(props))
+            print("-" * 48)
 
-            # print("{id:<15}{costs:>20}{train_time:>7.1f}".format(
-            #       id=jr.id,
-            #       costs=,
-            #       train_time=jr.train_result.elapsed))
-            print(NeuralNetAnalyser.format_dict(props))
-            print(NeuralNetAnalyser.format_dict(jr.hyper_parameters))
+            tracked_items = OrderedDict({**props, **jr.hyper_parameters})
+            if prev_jr is None:
+                print(NeuralNetAnalyser.format_dict(jr.hyper_parameters))
+                prev_jr = jr
+            else:
+                print("changes based on {0}:\n".format(prev_jr.id))
+                print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
+                    prev_jr.hyper_parameters, jr.hyper_parameters)))
 
-            title = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}".format(
-                test_set="set", precision="precision", recall="recall", f1="f1", support="support")
+            title = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}".format(
+                test_set="set", precision="precision", recall="recall", f1="f1", support="support", time="time")
             print(title)
             for test_set, result in jr.prediction_results.items():
                 precision, recall, f1, support = result.score.totals
-                print("{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}".format(
+                print("{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}".format(
                     test_set=test_set,
                     f1=f1,
                     precision=precision,
                     recall=recall,
-                    support=support))
-            print("\n")
-
-        # prediction_log = self.logger.prediction_log
-
-        # current_pred_table = prediction_log[prediction_log['session_name']
-        #                                     == self.session_name]
-        # pred_totals = current_pred_table[current_pred_table['label']
-        #                                  == '__totals__'].sort_values(['f1'], ascending=False)
-
-        # total_train_time = sum(r.train_time for r in self.job_results)
-        # total_prediction_time = sum(
-        #     r.prediction_time for r in self.job_results)
-
-        # print("Total train/prediction seconds: {0:.2f}/{1:.2f}\n".format(
-        #     total_train_time, total_prediction_time))
-
-        # print("Predictions:")
-
-        # with pd.option_context('expand_frame_repr', False):
-        #     # for result in self.job_results:
-        #     #     df = pred_totals[pred_totals['job_id'] == result.id]
-        #     #     print("{0} {1}".format(result.classifier, result.train_time))
-        #     print(
-        #         pred_totals[["classifier_instance", 'test_set', 'f1', 'precision', 'recall', 'support',
-        #                      'learning_rate', 'hidden_layers', 'iteration_count']])
+                    support=support,
+                    time=result.elapsed))
+            # print("\n")
 
         elapsed = (self.finish_time - self.start_time).total_seconds()
         print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
