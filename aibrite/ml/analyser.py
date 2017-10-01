@@ -50,7 +50,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
@@ -275,7 +275,6 @@ class NeuralNetAnalyser:
                     bests.append(test_set_id)
                 elif worst.prediction_results[test_set_id] == pred_result:
                     worsts.append(test_set_id)
-                    # return "**WORST on [{0}]**".format(test_set_id)
             results = []
             if (len(bests) > 0):
                 results.append("*BEST* on [" + ",".join(bests) + "]")
@@ -342,14 +341,17 @@ class NeuralNetAnalyser:
         print("{:^80}".format("Summary"))
         print("." * 80, "\n")
         print(
-            "**The Best** seems {0} (last one) based on [{1}] set.\n".format(best_by_target.id, target))
+            "**The Best** seems {0} (last one) based on [{1}] set performance.\n".format(best_by_target.id, target))
         if (target != '__totals__'):
             print(
                 "Here is the score report for *best* on [{0}]".format(target))
             score = best_by_target.prediction_results[target].score
             print(NeuralNet.format_score_report(score))
+            print("\nHyper parameters for *best* on [{0}]\n".format(target))
+            print(NeuralNetAnalyser.format_dict(
+                best_by_target.hyper_parameters, use_cols=True))
         print(
-            "\n**Worst** seems {0} (first one) based on [{1}] set.\n".format(worst_by_target.id, target))
+            "\n**The Worst** seems {0} (first one) based on [{1}] set performance.\n".format(worst_by_target.id, target))
         if (target != '__totals__'):
             print(
                 "Here is the score report for *worst* on [{0}]".format(target))
@@ -360,6 +362,8 @@ class NeuralNetAnalyser:
             worst_by_target.hyper_parameters, use_cols=True))
 
         elapsed = (self.finish_time - self.start_time).total_seconds()
-        print("\nNote * on hyper parameters represent changes with respect to **best**")
-        print("Completed at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
-                                                                            self.executor._max_workers))
+        print("Notes:\n")
+        print("* on hyper parameters represent changes with respect to **the best**")
+        print("% changes represent changes with respect to related *best* test set")
+        print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
+                                                                              self.executor._max_workers))
