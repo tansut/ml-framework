@@ -105,7 +105,7 @@ class MongodbLogger(AnalyserLoggerBase):
             'accuracy': score.accuracy,
             'f1': f1,
             'support': support,
-            'label': '__totals__',
+            'label': '__overall__',
             'classifier_instance': neuralnet.instance_id,
             'prediction_time': prediction_result.elapsed,
             'train_time': neuralnet.train_result.elapsed,

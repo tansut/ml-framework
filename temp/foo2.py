@@ -95,7 +95,7 @@ class NeuralNetAnalyser:
             'accuracy': score.accuracy,
             'f1': f1,
             'support': support,
-            'label': '__totals__',
+            'label': '__overall__',
             'job_id': 1
 
         }
@@ -210,7 +210,7 @@ class NeuralNetAnalyser:
 
     def print_summary(self):
         pred_totals = self.prediction_log[self.prediction_log['label']
-                                          == '__totals__'].sort_values(['f1'], ascending=False)
+                                          == '__overall__'].sort_values(['f1'], ascending=False)
 
         print("*" * 32)
         print("{:^32}".format("PREDICTION SUMMARY"))

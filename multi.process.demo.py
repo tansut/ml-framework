@@ -30,20 +30,20 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
 normalize_inputs = [True]
-iteration_count = [300, 600, 900]
-learning_rate = [0.005, 0.003]
-hidden_layers = [(12, 6, 24, 12)]
+iteration_count = [200, 300, 400, 500]
+learning_rate = [0.005, 0.01, 0.03, 0.002]
+hidden_layers = [(12, 6, 24, 12), (32, 64, 128)]
 lambds = [0.2, 0.4]
 learnin_rate_decay = [0.5]
-epoch = [1, 2]
+epoch = [1]
 shuffle = [True]
 minibatch_size = [0]
 
-test_sets = {'dev_set': (dev_x, dev_y),
-             'test_set': (test_x, test_y),
-             'train_set': (train_x, train_y)}
-test_sets = {'train_set': (train_x, train_y)}
-# test_sets = {'test_set': (test_x, test_y)}
+test_sets = {'dev': (dev_x, dev_y),
+             'test': (test_x, test_y),
+             'train': (train_x, train_y)}
+# test_sets = {'train': (train_x, train_y)}
+# test_sets = {'test': (test_x, test_y)}
 
 
 def jb(analyser, results):
@@ -81,8 +81,8 @@ for it in iteration_count:
 
 analyser.join()
 
-if len(test_sets) > 1:
-    selected = analyser.get_testset_from_user()
-    analyser.print_summary(selected)
-else:
-    analyser.print_summary()
+# if len(test_sets) > 1:
+#     selected = analyser.get_testset_from_user()
+#     analyser.print_summary(selected)
+# else:
+analyser.print_summary()
