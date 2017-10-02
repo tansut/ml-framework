@@ -31,7 +31,7 @@ test_x, test_y = (test_set[:, 0:-1]), test_set[:, -1]
 labels = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
 normalize_inputs = [True]
-iteration_count = [30, 90, 120]
+iteration_count = [300, 600, 900]
 learning_rate = [0.005, 0.003]
 hidden_layers = [(12, 6, 24, 12)]
 lambds = [0.2, 0.4]
@@ -43,7 +43,7 @@ minibatch_size = [0]
 test_sets = {'dev_set': (dev_x, dev_y),
              'test_set': (test_x, test_y),
              'train_set': (train_x, train_y)}
-# test_sets = {'train_set': (train_x, train_y)}
+test_sets = {'train_set': (train_x, train_y)}
 # test_sets = {'test_set': (test_x, test_y)}
 
 

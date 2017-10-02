@@ -124,7 +124,7 @@ class NeuralNetAnalyser:
 
     def submit(self, neuralnet_class, train_set, test_sets, id=None, **kvargs):
         if id is None:
-            id = "{0}/{1}".format(self.session_name, self.job_counter)
+            id = "Model {0}".format(self.job_counter)
         else:
             id = id.format(self.job_counter)
         self.job_counter += 1
@@ -144,7 +144,7 @@ class NeuralNetAnalyser:
         self.job_results.append(job_result)
 
     def join(self):
-        print("Waiting for {0} sessions to complete".format(
+        print("Waiting for {0} models to run".format(
             self.job_counter), end='')
         sys.stdout.flush()
         self.start_time = datetime.datetime.now()
@@ -219,7 +219,7 @@ class NeuralNetAnalyser:
         test_set_indexes = {}
         i = 0
         test_set_indexes[str(i)] = '__totals__'
-        print("{0}: {1}".format(0, 'ALL'))
+        print("{0}: {1}".format(0, 'Overall'))
         all_test_sets = self.get_unique_testset_names()
 
         for ts in all_test_sets:
@@ -227,7 +227,7 @@ class NeuralNetAnalyser:
             print("{0}: {1}".format(i, ts))
             test_set_indexes[str(i)] = ts
 
-        selected = input("Which test set do you want to optimize ?")
+        selected = input("\nWhich test set do you want to focus on ?")
         ts = test_set_indexes.get(selected, "__totals__")
         return ts
 
@@ -253,11 +253,13 @@ class NeuralNetAnalyser:
 
     def print_summary(self, target=None):
 
+        all_test_sets = self.get_unique_testset_names()
+        if (target == None):
+            target = all_test_sets[0]
+
         job_results_sorted = self.get_sorted_results()
         best_by_target = job_results_sorted[target][-1]
         worst_by_target = job_results_sorted[target][0]
-
-        all_test_sets = self.get_unique_testset_names()
 
         if (len(all_test_sets) == 1):
             target = all_test_sets[0]
@@ -281,7 +283,7 @@ class NeuralNetAnalyser:
             if (len(worsts) > 0):
                 results.append("*WORST* on [" + ",".join(worsts) + "]")
             best_worst = ",".join(results)
-            return best_worst if len(results) > 0 else jr.id
+            return "{0}: {1}".format(jr.id, best_worst) if len(results) > 0 else jr.id
 
         def print_job(jr):
             print("{0:^80}".format(job_title(jr)))
@@ -298,10 +300,14 @@ class NeuralNetAnalyser:
             for test_set, result in jr.prediction_results.items():
                 precision, recall, f1, support = result.score.totals
                 values_format = "{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}{change:9.2f}%"
-                best_f1 = (
-                    job_results_sorted[test_set][-1]).prediction_results[test_set].score.totals[2]
-                change = changes[test_set] = (0.0 if f1 == best_f1 else (100 *
-                                                                         ((f1 - best_f1) / best_f1)))
+                if (target == '__totals__'):
+                    best_f1 = jr.prediction_totals[2]
+                else:
+                    ref = best_by_target
+                    best_f1 = (
+                        ref).prediction_results[test_set].score.totals[2]
+                change = changes[test_set] = (0.0 if best_f1 == 0 else (100 *
+                                                                        ((f1 - best_f1) / best_f1)))
                 print(values_format.format(
                     test_set=test_set,
                     f1=f1,
@@ -320,7 +326,10 @@ class NeuralNetAnalyser:
                 #     "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
                 if (target != '__totals__'):
                     print(
-                        "\n[{0}] performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, changes[target]))
+                        "\n[{0}] performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
+                else:
+                    print(
+                        "\nOverall performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
 
                 print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
                     best_by_target.hyper_parameters, jr.hyper_parameters)))
@@ -351,23 +360,24 @@ class NeuralNetAnalyser:
                 "Here is the score report for *best* on [{0}]".format(target))
             score = best_by_target.prediction_results[target].score
             print(NeuralNet.format_score_report(score))
-            print("\nHyper parameters for *best* on [{0}]\n".format(target))
-            print(NeuralNetAnalyser.format_dict(
-                best_by_target.hyper_parameters, use_cols=True))
-        print(
-            "\n**The Worst** seems {0} (first one) based on [{1}] set performance.\n".format(worst_by_target.id, target))
-        if (target != '__totals__'):
-            print(
-                "Here is the score report for *worst* on [{0}]".format(target))
-            score = worst_by_target.prediction_results[target].score
-            print(NeuralNet.format_score_report(score))
-        print("\nHyper parameters for *worst* on [{0}]\n".format(target))
-        print(NeuralNetAnalyser.format_dict(
-            worst_by_target.hyper_parameters, use_cols=True))
+            # print("\nHyper parameters for *best* on [{0}]\n".format(target))
+            # print(NeuralNetAnalyser.format_dict(
+            #     best_by_target.hyper_parameters, use_cols=True))
+        # if (best_by_target != worst_by_target):
+        #     print(
+        #         "\n**The Worst** seems {0} (first one) based on [{1}] set performance.\n".format(worst_by_target.id, target))
+        #     if (target != '__totals__'):
+        #         print(
+        #             "Here is the score report for *worst* on [{0}]".format(target))
+        #         score = worst_by_target.prediction_results[target].score
+        #         print(NeuralNet.format_score_report(score))
+        #     print("\nHyper parameters for *worst* on [{0}]\n".format(target))
+        #     print(NeuralNetAnalyser.format_dict(
+        #         worst_by_target.hyper_parameters, use_cols=True))
 
-        elapsed = (self.finish_time - self.start_time).total_seconds()
-        print("Notes:\n")
-        print("* on hyper parameters represent changes with respect to **the best**")
-        print("% changes represent changes with respect to related *best* test set")
-        print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
-                                                                              self.executor._max_workers))
+            elapsed = (self.finish_time - self.start_time).total_seconds()
+            print("Notes:\n")
+            print("* on hyper parameters represent changes with respect to **the best**")
+            print("% changes represent changes with respect to related *best* test set")
+            print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
+                                                                                  self.executor._max_workers))
