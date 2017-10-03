@@ -265,12 +265,12 @@ class ModelAnalyser:
             self.print_job(mr)
             self.print_subtitle("hyper parameter tunings")
             title = "{0:<16}{1:>10}{2:>10}".format(
-                "", "curr", "new")
+                "", "current", "new")
             for k, v in mr.job_result.prediction_results.items():
                 title += "{0:>12}".format(k + " f1")
 
             print(title)
-
+            print("-" * len(title))
             for mrs in single_hyper_parameter_models:
                 # self.print_job(mrs)
                 change_on_hp = list(mrs.hyper_parameter_changes.values())[0]
@@ -288,6 +288,9 @@ class ModelAnalyser:
                     used_combinations[test_set] = self.best_models[best_test_set]
                     line += "{0:>12}".format(pred_change.formated_percent())
                 print(line)
+                print("-" * len(line)
+                      ) if mrs != single_hyper_parameter_models[-1] else None
+
             print("-" * 80)
             print("\n")
 
