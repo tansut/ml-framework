@@ -1,6 +1,7 @@
 # Aibrite Machine Learning Framework 
+Neural network classes + neural network testing.
 
-## Basic usage
+## Getting Started
 ```python
 from aibrite.ml.neuralnet import NeuralNet
 import pandas as pd
@@ -27,3 +28,34 @@ Accuracy:  1.00
 ```
 
 ## Neuralnet Classes
+```python
+from aibrite.ml.neuralnet import NeuralNet
+from aibrite.ml.neuralnetwithadam import NeuralNetWithAdam
+from aibrite.ml.neuralnetwithmomentum import NeuralNetWithMomentum
+from aibrite.ml.neuralnetwithrmsprop import NeuralNetWithRMSprop
+
+
+nn = NeuralNet(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000)
+
+nn = NeuralNetWithAdam(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000, beta1=0.9, beta2=0.99)
+
+nn = NeuralNetWithMomentum(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000, beta=0.9)
+
+nn = NeuralNetWithRMSprop(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000, beta=0.9, epsilon=0.00000001)
+```
+### Hyper parameters
+
+| parameter           | type  | sample value | description                              |     |
+| ------------------- | ----- | ------------ | ---------------------------------------- | --- |
+| hidden_layers       | tuple | (12, 24, 6)  | number of neurons in each layer          |     |
+| learning_rate       | float | 0.01         | learning rate                            |     |
+| iteration_count     | int   | 1000         | gradient descent iteration count         |     |
+| learning_rate_decay | int   | 0.2          | learning rate decay value for each epoch |     |
+| lambd               | float | 0.4          | regularization parameter                 |     |
+| minibatch_size      | int   | 32           | mini batch size                          |     |
+| shuffle             | bool  | True         | shuffle training data or not             |     |
+| epochs              | int   | 5            | number of epochs                         |     |
+| normalize_inputs    | bool  | True         | normalize inputs using zscore            |     |
+|                     |       |              |                                          |     |
+
+# Testing multiple parameters and analysing reslts 
