@@ -170,26 +170,34 @@ class ModelAnalyser:
 
         return result
 
+    def print_subtitle(self, title):
+        print("\n")
+        print("{0:^80}".format("." * 40))
+        print("{0:^80}".format(title))
+        print("{0:^80}".format("." * 40))
+
+    def print_h1(self, title):
+        print("\n")
+        print("*" * 80)
+        print("{:^80}".format(title))
+        print("*" * 80, "\n")
+
     def print_job(self, model_result):
         print("{0:<80}".format(model_result.job_title()))
         print("-" * 80)
         jr = model_result.job_result
         last_iteration = jr.train_result.last_iteration
-        # print("{0:^80}".format("Hyper Parameters"))
-        # print("{0:^80}".format("." * 40))
         print(ModelAnalyser.format_dict(
             jr.hyper_parameters, use_cols=True))
-        print("\n{0:^80}".format("." * 40))
-        print("{0:^80}".format("Prediction performance"))
-        print("{0:^80}".format("." * 40))
-        title_format = "{test_set:<10}{f1:>10}{precision:>10}{recall:>10}{support:>10}{time:>8}{change:>10}"
+        self.print_subtitle("Prediction performance")
+        title_format = "{test_set:<16}{f1:>10}{precision:>10}{recall:>10}{support:>10}{time:>8}{change:>10}"
         title = title_format.format(
             test_set="", precision="prec", recall="recall", f1="f1", support="support", time="time", change="change%")
 
         print(title)
         for test_set, result in jr.prediction_results.items():
             precision, recall, f1, support = result.score.totals
-            values_format = "{test_set:<10}{f1:10.2f}{precision:10.2f}{recall:10.2f}{support:>10}{time:8.2f}{change:>9}"
+            values_format = "{test_set:<16}{f1:10.2f}{precision:10.2f}{recall:10.2f}{support:>10}{time:8.2f}{change:>9}"
 
             print(values_format.format(
                 test_set=test_set,
@@ -199,24 +207,15 @@ class ModelAnalyser:
                 support=support,
                 time=result.elapsed,
                 change=model_result.prediction_changes[test_set, test_set].formated_percent()))
+        self.print_subtitle("Train performance")
+        last_iteration = model_result.job_result.train_result.last_iteration
+        print("{cost_title:<16}{maxcost:10.2f}".format(
+            cost_title="cost",
+            maxcost=last_iteration.max_cost))
 
-        # if jr == best_by_target:
-        # print("\nhyper parameters:\n".format())
-
-        # else:
-        # print(
-        #     "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
-        # if (target != '__overall__'):
-        #     print(
-        #         "\n[{0}] performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
-        # else:
-        #     print(
-        #         "\nOverall performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
-
-        # print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
-        #     best_by_target.hyper_parameters, jr.hyper_parameters)))
-        print("-" * 80)
-        print("\n")
+        print("{train_title:<16}{train_time:10.2f}".format(
+            train_title="train time",
+            train_time=jr.train_result.elapsed))
 
     def print_summary(self, target=None):
         all_test_sets = self.test_set_names
@@ -233,51 +232,70 @@ class ModelAnalyser:
 
         for mr in self.model_results:
             self.print_job(mr)
+            print("-" * 80)
+            print("\n")
 
-        print("." * 80)
-        print("{:^80}".format("Summary"))
-        print("." * 80, "\n")
-        # print(
-        #     "Best model seems {0} based on [{1}] set f1 performance.\n".format(best_by_target.job_result.id, target))
+        self.print_h1("Best Results")
+        title_format = "{test_set:<12}{f1:>10}{precision:>10}{recall:>10}{support:>10}{model:>12}"
+        title = title_format.format(
+            test_set="", precision="prec", recall="recall", f1="f1", support="support", time="time", model="model")
+
+        print(title)
+        for test_set, mr in self.best_models.items():
+            if (test_set == '__overall__'):
+                precision, recall, f1, support = mr.job_result.prediction_totals
+            else:
+                pred_result = mr.job_result.prediction_results[test_set]
+                precision, recall, f1, support = pred_result.score.totals
+            values_format = "{test_set:<12}{f1:10.2f}{precision:10.2f}{recall:10.2f}{support:>10}{model:>12}"
+
+            print(values_format.format(
+                test_set=test_set,
+                f1=f1,
+                precision=precision,
+                recall=recall,
+                support=support,
+                model=mr.job_result.id))
+
+        self.print_h1("Best Models")
+
         single_hyper_parameter_models = list(filter(lambda mr: len(
             mr.hyper_parameter_changes) == 1, self.model_results))
         for mr in set(self.best_models.values()):
             self.print_job(mr)
-            # print("Hyper parameter change effects on best f1 performance")
+            self.print_subtitle("hyper parameter tunings")
+            title = "{0:<16}{1:>10}{2:>10}".format(
+                "", "curr", "new")
+            for k, v in mr.job_result.prediction_results.items():
+                title += "{0:>12}".format(k + " f1")
 
-            # title_format = "{test_set:<10}{f1:>10}{change:>10}"
-            # title = title_format.format(
-            #     test_set="set", f1="f1", change="change*")
-            # print(title)
+            print(title)
 
-        #     for mrs in single_hyper_parameter_models:
-        #         # self.print_job(mrs)
-        #         change_on_hp = list(mrs.hyper_parameter_changes.values())[0]
-        #         print("{0} {1} -> {2}".format(change_on_hp.name,
-        #                                       change_on_hp.new, change_on_hp.old))
-        #         used_combinations = {}
-        #         for pred_key, pred_change in mrs.prediction_changes.items():
-        #             test_set, best_test_set = pred_key
-        #             if (mr != self.best_models[best_test_set] or used_combinations.get(test_set, None) != None):
-        #                 continue
-        #             used_combinations[test_set] = self.best_models[best_test_set]
-        #             values_format = "{test_set:<10}{f1:10.2f}{change:>9}"
-        #             print(values_format.format(
-        #                 test_set=test_set, f1=pred_change.old, change=pred_change.formated_percent()))
-        #             # print("{0} {1} {2:.2f} -> {3:.2f} ({4:.2f})".format(pred_key, pred_change.name, pred_change.new,
-        #             # pred_change.old, pred_change.change * 100))
+            for mrs in single_hyper_parameter_models:
+                # self.print_job(mrs)
+                change_on_hp = list(mrs.hyper_parameter_changes.values())[0]
+                if change_on_hp.isNumeric:
+                    line = "{0:<16}{1:>10}{2:>10}".format(change_on_hp.name,
+                                                          change_on_hp.new, change_on_hp.old)
+                else:
+                    line = "{0:<16}{1:>10}{2:>10}".format(change_on_hp.name,
+                                                          str(change_on_hp.new), str(change_on_hp.old))
+                used_combinations = {}
+                for pred_key, pred_change in mrs.prediction_changes.items():
+                    test_set, best_test_set = pred_key
+                    if (mr != self.best_models[best_test_set] or used_combinations.get(test_set, None) != None):
+                        continue
+                    used_combinations[test_set] = self.best_models[best_test_set]
+                    line += "{0:>12}".format(pred_change.formated_percent())
+                print(line)
+            print("-" * 80)
+            print("\n")
 
         if (target != '__overall__'):
             print(
                 "Here is the score report for {0}".format(best_by_target.job_result.id))
             score = best_by_target.job_result.prediction_results[target].score
             print(NeuralNet.format_score_report(score))
-            # print("\nHyper parameters for *best* on [{0}]\n".format(target))
-            # print(NeuralNetAnalyser.format_dict(
-            #     best_by_target.hyper_parameters, use_cols=True))
-
-        # single_hyper_parameter_models = sorted(
-        #     single_hyper_parameter_models, key=lambda c: c.name)
 
     def format_dict(d, use_cols=False):
         fmt_str = ""
@@ -328,7 +346,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)
@@ -394,8 +412,9 @@ class NeuralNetAnalyser:
             job.prediction_results[test_set_id] = prediction_result
             job.add_to_prediction_log(test_set_id, prediction_result)
             pred_totals += np.asarray(prediction_result.score.totals)
-
+        support_total = pred_totals[3]
         job.prediction_totals = pred_totals / len(job.prediction_results)
+        job.prediction_totals[3] = support_total.astype(int)
         job.status = 'completed'
         analyser.logger.flush()
         return job.get_result()
@@ -468,121 +487,3 @@ class NeuralNetAnalyser:
 
     def print_summary(self, target=None):
         self.model_analyser.print_summary(target)
-
-        # def job_title(job_result):
-        #     bests = []
-        #     worsts = []
-        #     for test_set_id, pred_result in job_result.prediction_results.items():
-        #         results_for_testset = job_results_sorted[test_set_id]
-        #         best = results_for_testset[-1]
-        #         worst = results_for_testset[0]
-        #         if (best.prediction_results[test_set_id] == pred_result):
-        #             bests.append(test_set_id)
-        #         elif worst.prediction_results[test_set_id] == pred_result:
-        #             worsts.append(test_set_id)
-        #     results = []
-        #     if (len(bests) > 0):
-        #         results.append("*BEST* on [" + ",".join(bests) + "]")
-        #     if (len(worsts) > 0):
-        #         results.append("*WORST* on [" + ",".join(worsts) + "]")
-        #     best_worst = ",".join(results)
-        # return "{0}: {1}".format(job_result.id, best_worst) if len(results) >
-        # 0 else job_result.id
-
-        # def print_job(jr):
-        #     print("{0:^80}".format(job_title(jr)))
-        #     print("-" * 80)
-
-        #     last_iteration = jr.train_result.last_iteration
-
-        #     title_format = "{test_set:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}{time:>8}{change:>10}"
-        #     title = title_format.format(
-        # test_set="", precision="precision", recall="recall", f1="f1",
-        # support="support", time="time", change="change*")
-
-        #     print(title)
-        #     changes = {}
-        #     for test_set, result in jr.prediction_results.items():
-        #         precision, recall, f1, support = result.score.totals
-        #         values_format = "{test_set:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}{time:8.2f}{change:9.2f}%"
-        #         if (target == '__overall__'):
-        #             best_f1 = jr.prediction_totals[2]
-        #         else:
-        #             ref = best_by_target
-        #             best_f1 = (
-        #                 ref).prediction_results[test_set].score.totals[2]
-        #         change = changes[test_set] = (0.0 if best_f1 == 0 else (100 *
-        #                                                                 ((f1 - best_f1) / best_f1)))
-        #         print(values_format.format(
-        #             test_set=test_set,
-        #             f1=f1,
-        #             precision=precision,
-        #             recall=recall,
-        #             support=support,
-        #             time=result.elapsed,
-        #             change=change))
-
-        #     if jr == best_by_target:
-        #         print("\nhyper parameters:\n".format(target))
-        #         print(NeuralNetAnalyser.format_dict(
-        #             jr.hyper_parameters, use_cols=True))
-        #     else:
-        #         # print(
-        #         #     "\nhyper parameter changes with respect to *best* on [{0}]:\n".format(target))
-        #         if (target != '__overall__'):
-        #             print(
-        #                 "\n[{0}] performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
-        #         else:
-        #             print(
-        #                 "\nOverall performance changes {1:5.2f}% with following new hyper parameter values\n".format(target, change))
-
-        #         print(NeuralNetAnalyser.format_dict(NeuralNetAnalyser.changed_dict_items(
-        #             best_by_target.hyper_parameters, jr.hyper_parameters)))
-        #     print("-" * 80)
-        #     print("\n")
-
-        # title = "{0}/{1}".format(self.group, self.session_name)
-        # print("\n")
-        # print("*" * 80)
-        # print("{:^80}".format(title.upper()))
-        # print("*" * 80, "\n")
-
-        # for jr in job_results_sorted[target]:
-        #     print_job(jr)
-
-        #     # print("Train summary: costs (max/min/avg) {maxcost:.2f}/{mincost:.2f}/{avgcost:.2f}, traintime {train_time:.2f}".format(
-        #     #     mincost=last_iteration.min_cost,
-        #     #     maxcost=last_iteration.max_cost,
-        #     #     avgcost=last_iteration.avg_cost,
-        #     #     train_time=jr.train_result.elapsed))
-        # print("." * 80)
-        # print("{:^80}".format("Summary"))
-        # print("." * 80, "\n")
-        # print(
-        #     "**The Best** seems {0} (last one) based on [{1}] set performance.\n".format(best_by_target.id, target))
-        # if (target != '__overall__'):
-        #     print(
-        #         "Here is the score report for *best* on [{0}]".format(target))
-        #     score = best_by_target.prediction_results[target].score
-        #     print(NeuralNet.format_score_report(score))
-        #     # print("\nHyper parameters for *best* on [{0}]\n".format(target))
-        #     # print(NeuralNetAnalyser.format_dict(
-        #     #     best_by_target.hyper_parameters, use_cols=True))
-        # # if (best_by_target != worst_by_target):
-        # #     print(
-        # #         "\n**The Worst** seems {0} (first one) based on [{1}] set performance.\n".format(worst_by_target.id, target))
-        # #     if (target != '__overall__'):
-        # #         print(
-        # #             "Here is the score report for *worst* on [{0}]".format(target))
-        # #         score = worst_by_target.prediction_results[target].score
-        # #         print(NeuralNet.format_score_report(score))
-        # #     print("\nHyper parameters for *worst* on [{0}]\n".format(target))
-        # #     print(NeuralNetAnalyser.format_dict(
-        # #         worst_by_target.hyper_parameters, use_cols=True))
-
-        #     elapsed = (self.finish_time - self.start_time).total_seconds()
-        #     print("Notes:\n")
-        #     print("* on hyper parameters represent changes with respect to **the best**")
-        #     print("% changes represent changes with respect to related *best* test set")
-        #     print("\nCompleted at {0:.2f} seconds with max {1} workers.\n".format(elapsed,
-        # self.executor._max_workers))
