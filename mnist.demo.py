@@ -60,4 +60,4 @@ prediction_result = nn.predict(test_x)
 report = NeuralNet.score_report(test_y, prediction_result.predicted)
 
 print("{0}:\n{1}\n".format(
-    nn, NeuralNet.format_score_report(report)))
+    nn, NeuralNet.format_score(report)))

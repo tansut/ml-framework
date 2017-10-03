@@ -67,7 +67,7 @@ train_result = classifier.train(train_cb)
 prediction = classifier.predict(test_x)
 report = NeuralNet.score_report(test_y, prediction.predicted)
 print("Classification report for {0}:\n{1}\n".format(
-    classifier, NeuralNet.format_score_report(report)))
+    classifier, NeuralNet.format_score(report)))
 
 
 classifier = svm.SVC(gamma=0.001)
@@ -75,7 +75,7 @@ classifier.fit(train_x, train_y)
 predicted = classifier.predict(test_x)
 report = NeuralNet.score_report(test_y, predicted)
 print("Classification report for {0}:\n{1}\n".format(
-    classifier, NeuralNet.format_score_report(report)))
+    classifier, NeuralNet.format_score(report)))
 
 
 # analyse(classifier, expected, predicted)

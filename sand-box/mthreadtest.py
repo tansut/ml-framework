@@ -55,7 +55,7 @@ def predict_it(train_result, test_id, test_set):
                                                                                 train_time=train_time,
                                                                                 pred_time=pred_time,
                                                                                 nn=nn,
-                                                                                report=NeuralNet.format_score_report(report)))
+                                                                                report=NeuralNet.format_score(report)))
 
     return prediction_result, report, pred_time
 
@@ -115,5 +115,5 @@ with concurrent.futures.ProcessPoolExecutor() as executor:
                     "It seems best f1 is {f1:.2f} with {nn} configuration(s)\n".format(f1=best_f1, nn=len(best_nns)))
                 for i, rep in enumerate(best_reports):
                     print("[{0}]{1}\n{2}".format(best_test_sets[i],
-                                                 best_nns[i], NeuralNet.format_score_report(rep)))
+                                                 best_nns[i], NeuralNet.format_score(rep)))
                 print("-" * 40)

@@ -298,7 +298,7 @@ class ModelAnalyser:
             print(
                 "Here is the score report for {0}".format(best_by_target.job_result.id))
             score = best_by_target.job_result.prediction_results[target].score
-            print(NeuralNet.format_score_report(score))
+            print(NeuralNet.format_score(score))
 
     def format_dict(d, use_cols=False):
         fmt_str = ""

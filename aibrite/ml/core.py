@@ -4,8 +4,8 @@ import datetime
 
 # Prediction = namedtuple("Prediction", ["predicted", 'probabilities'])
 
-ScoreReport = namedtuple("ScoreReport", ["labels",
-                                         "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
+Score = namedtuple("Score", ["labels",
+                             "confusion_matrix", "accuracy", "precision", "recall", "f1", "support", "totals"])
 
 TrainIteration = namedtuple(
     'TrainIteration', ['cost', 'min_cost', 'max_cost', 'avg_cost', 'epoch', 'current_batch_index', 'total_batch_index', 'total_iteration_index', 'current_batch_iteration_index', 'calculated_learning_rate'])
@@ -176,7 +176,7 @@ class MlBase:
         recall = MlBase.calc_recall(cm)
         f1 = MlBase.calc_f1(cm)
         support = MlBase.calc_support(cm)
-        return ScoreReport(
+        return Score(
             labels=labels,
             confusion_matrix=cm,
             accuracy=MlBase.calc_accuracy(cm),
@@ -186,21 +186,21 @@ class MlBase:
             support=support,
             totals=(np.average(precision, weights=support), np.average(recall, weights=support), np.average(f1, weights=support), sum(support).astype(int)))
 
-    def format_score_report(report):
+    def format_score(score):
 
         title = "{label:<10}{precision:>10}{recall:>10}{f1:>10}{support:>10}\n\n"
         content = ""
-        for i, v in enumerate(report.precision):
-            content += "{label:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}\n".format(label=report.labels[i],
-                                                                                                    precision=report.precision[
+        for i, v in enumerate(score.precision):
+            content += "{label:<10}{precision:10.2f}{recall:10.2f}{f1:10.2f}{support:>10}\n".format(label=score.labels[i],
+                                                                                                    precision=score.precision[
                                                                                                         i],
-                                                                                                    recall=report.recall[i],
-                                                                                                    f1=report.f1[i],
-                                                                                                    support=report.support[i])
+                                                                                                    recall=score.recall[i],
+                                                                                                    f1=score.f1[i],
+                                                                                                    support=score.support[i])
         footer = "\n{label:<10}{precision: 10.2f}{recall: 10.2f}{f1: 10.2f}{support:>10}\n".format(label="avg/total",
-                                                                                                   precision=report.totals[0],
-                                                                                                   recall=report.totals[1],
-                                                                                                   f1=report.totals[2],
-                                                                                                   support=report.totals[3])
-        footer += "Accuracy: {accuracy:5.2f}".format(accuracy=report.accuracy)
+                                                                                                   precision=score.totals[0],
+                                                                                                   recall=score.totals[1],
+                                                                                                   f1=score.totals[2],
+                                                                                                   support=score.totals[3])
+        footer += "Accuracy: {accuracy:5.2f}".format(accuracy=score.accuracy)
         return title.format(label="label", precision="precision", recall="recall", f1="f1", support="support") + content + footer

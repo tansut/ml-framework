@@ -19,9 +19,7 @@ nn = NeuralNet(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000)
 train_result = nn.train(lambda nn, iter: print("{0:.2f}".format(
     iter.cost)) if iter.total_iteration_index % 100 == 0 else None)
 
-prediction_result = nn.predict(test_x)
-
-report = NeuralNet.score_report(test_y, prediction_result.predicted)
+result = nn.predict(test_x, expected=test_y)
 
 print("{0}:\n{1}\n".format(
-    nn, NeuralNet.format_score_report(report)))
+    nn, NeuralNet.format_score(result.score)))
