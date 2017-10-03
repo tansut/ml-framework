@@ -16,7 +16,8 @@ test_x, test_y = test_set[:, 0:-1], test_set[:, -1]
 
 nn = NeuralNet(train_x, train_y, hidden_layers=(2, 2), iteration_count=6000)
 
-train_result = nn.train()
+train_result = nn.train(lambda nn, iter: print("{0:.2f}".format(
+    iter.cost)) if iter.total_iteration_index % 100 == 0 else None)
 
 prediction_result = nn.predict(test_x)
 

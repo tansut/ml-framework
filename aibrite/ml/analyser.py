@@ -346,7 +346,7 @@ class AnalyserJob:
 
 class NeuralNetAnalyser:
 
-    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ThreadPoolExecutor, train_options=None, job_completed=None):
+    def __init__(self, group=None, logger=None,  session_name=None, max_workers=None, executor=concurrent.futures.ProcessPoolExecutor, train_options=None, job_completed=None):
         group = group if group is not None else ''
         self.group = group
         self.executor = executor(max_workers=max_workers)

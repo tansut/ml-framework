@@ -1,3 +1,5 @@
-# Aibrite Deep Neural Network Framework (pre-release)
+# Aibrite Deep Neural Network Framework 
+
+
 
 
