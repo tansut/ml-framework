@@ -14,9 +14,6 @@ from aibrite.ml.loggers import CsvLogger
 
 df = pd.read_csv("./data/winequality-red.csv", sep=";")
 
-# df = df[df['quality'] != 8.0]
-# df = df[df['quality'] != 3.0]
-
 np.random.seed(5)
 data = df.values
 
@@ -42,19 +39,14 @@ minibatch_size = [0]
 test_sets = {'dev': (dev_x, dev_y),
              'test': (test_x, test_y),
              'train': (train_x, train_y)}
-# test_sets = {'train': (train_x, train_y)}
-# test_sets = {'test': (test_x, test_y)}
 
 
 def jb(analyser, results):
     pass
 
 
-# logger = CsvLogger("Coursera Ex2 Analysis", overwrite=True,
-#                    base_dir='./analyserlogs')
-
 analyser = NeuralNetAnalyser(
-    "Coursera Ex2 Analysis", job_completed=jb)
+    "Red Wine Analysis", job_completed=jb)
 
 train_set = (train_x, train_y)
 
@@ -80,9 +72,4 @@ for it in iteration_count:
                                                     labels=labels)
 
 analyser.join()
-
-# if len(test_sets) > 1:
-#     selected = analyser.get_testset_from_user()
-#     analyser.print_summary(selected)
-# else:
 analyser.print_summary()
