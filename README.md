@@ -59,13 +59,11 @@ nn = NeuralNetWithRMSprop(train_x, train_y, hidden_layers=(2, 2), iteration_coun
 | normalize_inputs    | bool  | True         | normalize inputs using zscore            |     |
 |                     |       |              |                                          |     |
 
-# Testing with multiple parameters and analysing results
+# Hyper parameter tuning
 
 One of the challenging jobs in machine learning is hyper parameter tuning. 
 
-aibrite-ml provides NeuralNetAnalyser class to analyse prediction/train performance simultaneously. 
-
-NeuralNetAnalyser uses different processors to train different models.
+aibrite-ml provides NeuralNetAnalyser class to analyse prediction/train performance simultaneously using multiple processors.
 
 ```python
 import pandas as pd
@@ -108,6 +106,7 @@ for it in iteration_count:
         for hl in hidden_layers:
             for lambd in lambds:
                 for ni in normalize_inputs:
+                    # submit models
                     analyser.submit(NeuralNetWithAdam, (train_x, train_y), test_sets,
                                     hidden_layers=hl,
                                     learning_rate=lr,
@@ -115,11 +114,13 @@ for it in iteration_count:
                                     lambd=lambd,
                                     normalize_inputs=ni)
 
+# wait to complete.
 analyser.join()
+
 analyser.print_summary()
 ```
 
-NeuralNetAnalyser.print_summary() prints model performance and recommendations.
+NeuralNetAnalyser.print_summary() prints model performance and key recommendations for hyper parameters.
 
 ```none
 Waiting for 73 models to run ...
