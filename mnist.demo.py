@@ -46,14 +46,21 @@ def get_datasets():
 
 (train_x, train_y), (test_x, test_y), (valid_x, valid_y) = get_datasets()
 
+
+def train_callback(nn, it):
+    if (it.total_iteration_index % 10 == 0):
+        print("it:{it:>5}, cost:{cost:6.2f}".format(
+            it=it.total_iteration_index, cost=it.cost))
+
+
 nn = NeuralNetWithAdam(train_x, train_y,
-                       hidden_layers=(9,),
-                       iteration_count=100,
-                       learning_rate=0.001,
+                       hidden_layers=(15,),
+                       iteration_count=200,
+                       learning_rate=0.01,
                        minibatch_size=0,
                        epochs=1)
 print("Training ...")
-train_result = nn.train()
+train_result = nn.train(train_callback)
 
 prediction_result = nn.predict(test_x)
 
