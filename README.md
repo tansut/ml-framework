@@ -1,4 +1,4 @@
-# Aibrite Machine Learning Framework
+# Simple Machine Learning Framework
 
 Neural network classes + neural network testing.
 
