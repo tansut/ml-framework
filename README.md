@@ -174,4 +174,4 @@ learning_rate        0.005     0.002      -1.90↓      -7.79↓       0.00↑  
 
 ```
 
-Above results shows the importance of input normalization and network size on model performance.
+Above results show the importance of input normalization and network size on model performance.
